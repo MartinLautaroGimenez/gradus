@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   annualAverage,
+  gradeToText,
+  parseGradeInput,
+  periodAverage,
+  subjectResult,
   formatGrade,
   isPassing,
   roundGrade,
@@ -81,5 +85,90 @@ describe("formatGrade", () => {
     expect(formatGrade(7.5)).toBe("7,50");
     expect(formatGrade(8, 0)).toBe("8");
     expect(formatGrade(null)).toBe("—");
+  });
+});
+
+describe("parseGradeInput", () => {
+  it.each([
+    ["7", { kind: "value", value: 7 }],
+    ["7,5", { kind: "value", value: 7.5 }],
+    [" 7.25 ", { kind: "value", value: 7.25 }],
+    ["10", { kind: "value", value: 10 }],
+    ["A", { kind: "absent" }],
+    ["aus", { kind: "absent" }],
+    ["", { kind: "empty" }],
+    ["-", { kind: "empty" }],
+  ])("%j", (input, expected) => {
+    expect(parseGradeInput(input)).toEqual(expected);
+  });
+
+  it.each(["11", "0", "0,5", "7,555", "siete", "7.5.1", "1e1"])("rechaza %j", (input) => {
+    expect(parseGradeInput(input).kind).toBe("invalid");
+  });
+});
+
+describe("gradeToText", () => {
+  it("muestra coma decimal, ausente o vacío", () => {
+    expect(gradeToText({ value: 7.5, absent: false })).toBe("7,5");
+    expect(gradeToText({ value: 8, absent: false })).toBe("8");
+    expect(gradeToText({ value: null, absent: true })).toBe("A");
+    expect(gradeToText(undefined)).toBe("");
+  });
+});
+
+describe("periodAverage", () => {
+  const assessments = [
+    { id: "tp", weight: 1 },
+    { id: "parcial", weight: 2 },
+    { id: "oral", weight: 1 },
+  ];
+
+  it("pondera y no cuenta ausentes ni celdas vacías", () => {
+    const grades: Record<string, string> = { tp: "10", parcial: "7", oral: "A" };
+    expect(periodAverage(assessments, (id) => parseGradeInput(grades[id] ?? ""))).toBe(8);
+  });
+
+  it("devuelve null si no hay notas", () => {
+    expect(periodAverage(assessments, () => ({ kind: "empty" }))).toBeNull();
+  });
+});
+
+describe("subjectResult", () => {
+  const base = { passingGrade: 7, regularComplete: true, december: null, february: null };
+
+  it("en curso mientras no terminan los cuatrimestres", () => {
+    expect(subjectResult({ ...base, regular: [8, null], regularComplete: false }).status).toBe("EN_CURSO");
+  });
+
+  it("aprueba con promedio anual >= 7", () => {
+    expect(subjectResult({ ...base, regular: [6.5, 7.5] })).toEqual({
+      annual: 7,
+      status: "APROBADA",
+      finalGrade: 7,
+      approvedIn: "ANUAL",
+    });
+  });
+
+  it("va a diciembre con 6,99", () => {
+    expect(subjectResult({ ...base, regular: [6.99, 6.99] }).status).toBe("DICIEMBRE");
+  });
+
+  it("aprueba en diciembre", () => {
+    expect(subjectResult({ ...base, regular: [5, 6], december: 7 })).toMatchObject({
+      status: "APROBADA",
+      finalGrade: 7,
+      approvedIn: "DICIEMBRE",
+    });
+  });
+
+  it("pasa a febrero cuando cierra diciembre sin aprobar", () => {
+    expect(subjectResult({ ...base, regular: [5, 6], december: 4, decemberClosed: true }).status).toBe("FEBRERO");
+    expect(subjectResult({ ...base, regular: [5, 6], december: null, decemberClosed: true }).status).toBe("FEBRERO");
+  });
+
+  it("aprueba en febrero o queda previa", () => {
+    const failed = { ...base, regular: [5, 6], december: 4, decemberClosed: true };
+    expect(subjectResult({ ...failed, february: 8 })).toMatchObject({ status: "APROBADA", approvedIn: "FEBRERO" });
+    expect(subjectResult({ ...failed, february: 5, februaryClosed: true }).status).toBe("PREVIA");
   });
 });

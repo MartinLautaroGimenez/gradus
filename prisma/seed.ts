@@ -32,6 +32,8 @@ async function main() {
 
   console.log("Limpiando base…");
   await db.$transaction([
+    db.grade.deleteMany(),
+    db.assessment.deleteMany(),
     db.enrollment.deleteMany(),
     db.studentGuardian.deleteMany(),
     db.student.deleteMany(),
@@ -137,7 +139,67 @@ async function main() {
     data: { studentId: studentsByCourse[1][2], guardianId: teachers[3].id, relationship: "MADRE", isPrimary: true },
   });
 
+  console.log("Cargando notas…");
+  await seedGrades(year.id);
+
   console.log(`Listo. Contraseña de todos los usuarios: ${PASSWORD}`);
+}
+
+/** Generador pseudoaleatorio determinístico: el seed da siempre los mismos datos. */
+function random(seed: number) {
+  let state = seed;
+  return () => {
+    state = (state * 1103515245 + 12345) % 2 ** 31;
+    return state / 2 ** 31;
+  };
+}
+
+/**
+ * 1° cuatrimestre completo y cerrado; 2° cuatrimestre en curso con un trabajo
+ * práctico cargado. Cada alumno tiene un "nivel" para que haya de todo: buenos
+ * promedios, algunos que se llevan materias a diciembre y algún ausente.
+ */
+async function seedGrades(academicYearId: string) {
+  const periods = await db.gradingPeriod.findMany({ where: { academicYearId }, orderBy: { order: "asc" } });
+  const [first, second] = periods;
+  const sheets = await db.courseSubject.findMany({
+    where: { course: { academicYearId } },
+    include: { course: { include: { enrollments: true } } },
+  });
+  const rand = random(42);
+  const level = new Map<string, number>();
+
+  for (const sheet of sheets) {
+    const plan = [
+      { periodId: first.id, title: "TP 1", kind: "TRABAJO_PRACTICO" as const, weight: 1, date: "2026-04-10", fill: 1 },
+      { periodId: first.id, title: "Parcial", kind: "EXAMEN" as const, weight: 2, date: "2026-05-15", fill: 1 },
+      { periodId: first.id, title: "Concepto", kind: "CONCEPTO" as const, weight: 1, date: "2026-07-01", fill: 1 },
+      { periodId: second.id, title: "TP 1", kind: "TRABAJO_PRACTICO" as const, weight: 1, date: "2026-08-20", fill: 0.6 },
+    ];
+    for (const [position, item] of plan.entries()) {
+      const assessment = await db.assessment.create({
+        data: {
+          courseSubjectId: sheet.id,
+          periodId: item.periodId,
+          title: item.title,
+          kind: item.kind,
+          weight: item.weight,
+          date: new Date(item.date),
+          position: position + 1,
+        },
+      });
+      const grades = sheet.course.enrollments
+        .filter(() => rand() < item.fill)
+        .map((enrollment) => {
+          if (!level.has(enrollment.id)) level.set(enrollment.id, 5 + rand() * 4.5);
+          const absent = rand() < 0.04;
+          const value = Math.min(10, Math.max(1, Math.round(level.get(enrollment.id)! + (rand() - 0.5) * 4)));
+          return { assessmentId: assessment.id, enrollmentId: enrollment.id, absent, value: absent ? null : value };
+        });
+      await db.grade.createMany({ data: grades });
+    }
+  }
+  await db.gradingPeriod.update({ where: { id: first.id }, data: { closed: true } });
 }
 
 main()

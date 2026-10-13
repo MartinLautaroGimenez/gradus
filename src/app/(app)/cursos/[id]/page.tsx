@@ -34,6 +34,8 @@ export const metadata: Metadata = { title: "Curso" };
 const ERRORS: Record<string, string> = {
   "ya-matriculado": "Ese alumno ya tiene una matrícula activa en otro curso de este ciclo. Primero pasala a Pase o Baja.",
   "con-alumnos": "No se puede eliminar un curso con alumnos matriculados.",
+  "materia-con-notas": "Esa materia ya tiene evaluaciones cargadas en este curso. Para no perder notas, no se puede quitar.",
+  "alumno-con-notas": "Ese alumno ya tiene notas en este curso. En lugar de quitarlo, cambiá su estado a Pase o Baja.",
 };
 
 function RemoveButton({ label }: { label: string }) {

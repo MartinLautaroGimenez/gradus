@@ -75,7 +75,7 @@ también es padre de un alumno) y ve lo que corresponde a cada uno.
 | **Base** | Login (email o DNI), sesiones, roles, navegación, inicio por rol, PWA | ✅ 1 |
 | **Gestión académica** | Ciclos lectivos, períodos, materias, cursos y divisiones, asignación de docentes y preceptores | ✅ 2 |
 | **Personas y legajos** | Alta y edición de alumnos, familias y personal; matrículas; vínculos familiares; carga masiva desde planillas | ✅ 2 |
-| **Calificaciones** | Evaluaciones por materia y período, carga rápida tipo planilla, promedios, cierre de período, instancias de diciembre y febrero | 3 |
+| **Calificaciones** | Planilla tipo Excel por materia y período, promedios ponderados, cierre de período, instancias de diciembre y febrero, exportación a Excel, vista de notas para alumnos y familias | ✅ 3 |
 | **Asistencia** | Toma diaria del preceptor, asistencia por materia, llegadas tarde, justificaciones, alertas al acercarse al tope de 20 faltas | 4 |
 | **Comunicados** | Circulares por escuela, curso o rol, adjuntos, confirmación de lectura ("notificado"), seguimiento de quién no leyó | 5 |
 | **Notificaciones** | Bandeja dentro de la app, push (PWA) y email, con preferencias por usuario | 5 |
@@ -96,7 +96,8 @@ punta: modelo de datos, pantallas, permisos y tests.
 2. ✅ **Gestión académica y personas:** configuración de la escuela y ciclos,
    materias, cursos, personas, familias, matrículas e importación desde
    planillas.
-3. **Calificaciones:** el corazón del sistema.
+3. ✅ **Calificaciones:** planilla tipo Excel, resultado final por materia y
+   vista para alumnos y familias.
 4. **Asistencia.**
 5. **Comunicados y notificaciones.**
 6. **Mensajería y convivencia.**
@@ -115,6 +116,46 @@ punta: modelo de datos, pantallas, permisos y tests.
 | Despliegue | Node.js + systemd + proxy con HTTPS, sin Docker | Simple de mantener en el homelab y en el servidor de la ETec. |
 | Idioma | Interfaz y documentación en español; código en inglés | |
 
+## Calificaciones
+
+### La planilla
+
+Cada materia de cada curso tiene una planilla por período: filas = alumnos,
+columnas = evaluaciones. Se usa como Excel:
+
+- Escribir y Enter baja, Tab va a la derecha; flechas para moverse.
+- Se acepta `7`, `7,5` o `7.5`; `A` = ausente.
+- Shift + flechas o arrastrar selecciona; Supr borra; Ctrl+C / Ctrl+V copian
+  y pegan bloques (también desde y hacia Excel); pegar un valor en una
+  selección lo repite en todas las celdas.
+- Ctrl+Z / Ctrl+Y deshacen y rehacen.
+- Se guarda sola. Una celda inválida se marca en rojo y no se guarda hasta
+  corregirla.
+- Cada evaluación tiene nombre, tipo, fecha y peso (un examen con peso 2 vale
+  el doble). Las columnas se pueden reordenar y eliminar.
+- Abajo está el promedio del curso por evaluación y cuántas notas hay cargadas.
+- "Descargar Excel" baja la planilla con una hoja por período y el resumen.
+
+Carga notas el docente de la materia. La dirección también puede, para
+corregir. Administración y el preceptor del curso la ven en sólo lectura.
+Cuando la dirección cierra un período, su planilla queda de sólo lectura.
+
+### Resultado final
+
+- Promedio del período: promedio ponderado de sus evaluaciones. Ausentes y
+  celdas vacías no cuentan.
+- Anual: promedio de los dos cuatrimestres (como se muestran).
+- Con 7 o más aprueba. Si no, pasa a diciembre; si no aprueba en diciembre, a
+  febrero; si tampoco, queda **previa**.
+- Las planillas de diciembre y febrero muestran sólo a quienes tienen que
+  rendir, y se arman cuando la dirección cierra el período anterior.
+- Alumnos y familias ven cada nota en cuanto se carga, con el detalle por
+  evaluación.
+
+Si alguien quita una materia de un curso o un alumno de una lista, sus notas
+se borrarían en cascada. Por eso, si ya hay notas, el sistema no lo permite y
+pide cambiar el estado del alumno a Pase o Baja.
+
 ## Cuentas y contraseñas
 
 - Todas las personas se identifican por su **DNI**; el email es opcional.
@@ -129,6 +170,9 @@ punta: modelo de datos, pantallas, permisos y tests.
   Nadie puede cambiar sus propios roles.
 
 ## Pendiente de definir
+
+- Si un ausente en una evaluación cuenta como 1 o no cuenta (hoy no cuenta).
+- Si además del promedio anual hace falta aprobar el 2° cuatrimestre.
 
 - Tipos de sanción del régimen de convivencia (se definen antes de la etapa 6).
 - Cómo cuentan las llegadas tarde y las faltas por materia respecto del tope

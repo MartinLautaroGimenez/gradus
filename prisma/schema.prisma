@@ -70,6 +70,7 @@ model User {
   guardianOf          StudentGuardian[]
   preceptorOfCourses  Course[]          @relation("CoursePreceptor")
   teachingAssignments CourseSubject[]   @relation("CourseSubjectTeacher")
+  gradesUpdated       Grade[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -147,6 +148,8 @@ model GradingPeriod {
   /// Cuando se cierra, los docentes ya no pueden modificar notas del período.
   closed         Boolean      @default(false)
 
+  assessments Assessment[]
+
   @@unique([academicYearId, order])
 }
 
@@ -193,6 +196,8 @@ model CourseSubject {
   subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
   teacherId String?
   teacher   User?   @relation("CourseSubjectTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+
+  assessments Assessment[]
 
   @@unique([courseId, subjectId])
   @@index([teacherId])
@@ -260,8 +265,65 @@ model Enrollment {
   /// Número de orden en la lista del curso.
   listNumber Int?
 
+  grades Grade[]
+
   createdAt DateTime @default(now())
 
   @@unique([studentId, courseId])
   @@index([courseId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Calificaciones
+// ─────────────────────────────────────────────────────────────
+
+enum AssessmentKind {
+  EXAMEN
+  TRABAJO_PRACTICO
+  ORAL
+  CONCEPTO
+  OTRO
+}
+
+/// Una columna de la planilla de notas: una evaluación de una materia en un
+/// curso y un período.
+model Assessment {
+  id              String         @id @default(cuid())
+  courseSubjectId String
+  courseSubject   CourseSubject  @relation(fields: [courseSubjectId], references: [id], onDelete: Cascade)
+  periodId        String
+  period          GradingPeriod  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  title           String
+  kind            AssessmentKind @default(EXAMEN)
+  date            DateTime?      @db.Date
+  /// Peso relativo para el promedio del período (por defecto 1).
+  weight          Decimal        @default(1) @db.Decimal(5, 2)
+  /// Orden de la columna en la planilla.
+  position        Int
+
+  grades Grade[]
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseSubjectId, periodId])
+}
+
+/// Nota de un alumno en una evaluación. `value` nulo con `absent` = ausente.
+model Grade {
+  id           String     @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  value        Decimal?   @db.Decimal(4, 2)
+  absent       Boolean    @default(false)
+
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([assessmentId, enrollmentId])
+  @@index([enrollmentId])
 }

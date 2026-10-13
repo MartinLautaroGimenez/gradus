@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import type { Role } from "@prisma/client";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -134,13 +135,17 @@ async function TeacherAssignments({ userId, yearId }: { userId: string; yearId: 
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {assignments.map((assignment) => (
-            <Card key={assignment.id}>
-              <div className="flex items-start justify-between gap-2">
-                <CardTitle>{assignment.subject.name}</CardTitle>
-                <Badge tone="primary">{courseLabel(assignment.course)}</Badge>
-              </div>
-              <CardDescription className="mt-1">{assignment.course._count.enrollments} alumnos</CardDescription>
-            </Card>
+            <Link key={assignment.id} href={`/notas/${assignment.id}`} className="group">
+              <Card className="h-full transition-colors group-hover:border-primary">
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle>{assignment.subject.name}</CardTitle>
+                  <Badge tone="primary">{courseLabel(assignment.course)}</Badge>
+                </div>
+                <CardDescription className="mt-1">
+                  {assignment.course._count.enrollments} alumnos · Abrir planilla de notas
+                </CardDescription>
+              </Card>
+            </Link>
           ))}
         </div>
       )}
@@ -171,7 +176,12 @@ async function GuardianChildren({ userId, yearId }: { userId: string; yearId: st
             const enrollment = student.enrollments[0];
             return (
               <Card key={student.id}>
-                <CardTitle>{fullName(student.user)}</CardTitle>
+                <div className="flex items-start justify-between gap-2">
+                  <CardTitle>{fullName(student.user)}</CardTitle>
+                  <Link href={`/notas?alumno=${student.id}`} className="text-sm font-medium text-primary hover:underline">
+                    Ver notas
+                  </Link>
+                </div>
                 <CardDescription className="mt-1">
                   {enrollment ? `${courseLabel(enrollment.course)} · Legajo ${student.fileNumber}` : "Sin matrícula este ciclo"}
                 </CardDescription>
@@ -208,11 +218,16 @@ async function StudentCourse({ userId, yearId }: { userId: string; yearId: strin
   const { course } = enrollment;
   return (
     <Section title={`Mi curso · ${courseLabel(course)}`}>
-      {course.preceptor && (
-        <p className="text-sm text-muted">
-          Preceptor/a: <span className="text-foreground">{fullName(course.preceptor)}</span>
-        </p>
-      )}
+      <p className="flex flex-wrap justify-between gap-2 text-sm text-muted">
+        {course.preceptor && (
+          <span>
+            Preceptor/a: <span className="text-foreground">{fullName(course.preceptor)}</span>
+          </span>
+        )}
+        <Link href="/notas" className="font-medium text-primary hover:underline">
+          Ver mis notas
+        </Link>
+      </p>
       <Card className="p-0">
         <ul className="divide-y divide-border">
           {course.subjects.map(({ id, subject, teacher }) => (

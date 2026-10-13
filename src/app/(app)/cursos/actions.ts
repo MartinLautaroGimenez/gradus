@@ -120,8 +120,15 @@ export async function setSubjectTeacher(courseSubjectId: string, formData: FormD
 
 export async function removeCourseSubject(courseSubjectId: string) {
   await requireRole(MANAGE_ROLES);
-  const removed = await db.courseSubject.delete({ where: { id: courseSubjectId } });
-  revalidatePath(`/cursos/${removed.courseId}`);
+  const courseSubject = await db.courseSubject.findUnique({
+    where: { id: courseSubjectId },
+    include: { _count: { select: { assessments: true } } },
+  });
+  if (!courseSubject) return;
+  // Quitar la materia borraría en cascada todas sus evaluaciones y notas.
+  if (courseSubject._count.assessments > 0) redirect(`/cursos/${courseSubject.courseId}?error=materia-con-notas`);
+  await db.courseSubject.delete({ where: { id: courseSubjectId } });
+  revalidatePath(`/cursos/${courseSubject.courseId}`);
 }
 
 // ── Alumnos del curso ───────────────────────────────────────
@@ -173,8 +180,15 @@ export async function setEnrollmentStatus(enrollmentId: string, formData: FormDa
 
 export async function removeEnrollment(enrollmentId: string) {
   await requireRole(MANAGE_ROLES);
-  const removed = await db.enrollment.delete({ where: { id: enrollmentId } });
-  revalidatePath(`/cursos/${removed.courseId}`);
+  const enrollment = await db.enrollment.findUnique({
+    where: { id: enrollmentId },
+    include: { _count: { select: { grades: true } } },
+  });
+  if (!enrollment) return;
+  // Con notas cargadas no se borra: se le cambia el estado a Pase o Baja.
+  if (enrollment._count.grades > 0) redirect(`/cursos/${enrollment.courseId}?error=alumno-con-notas`);
+  await db.enrollment.delete({ where: { id: enrollmentId } });
+  revalidatePath(`/cursos/${enrollment.courseId}`);
 }
 
 /** Numera la lista por orden alfabético (apellido, nombre). */

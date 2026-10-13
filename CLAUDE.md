@@ -10,3 +10,5 @@
 - Colores: usar los tokens de `src/app/globals.css` (`bg-surface`, `text-muted`, `bg-primary`…), no colores sueltos de Tailwind; así funciona el modo oscuro.
 - Formularios con server actions: usar `useFormAction` (`src/lib/use-form-action.ts`) en vez de `useActionState` + `action={...}`, porque React 19 vacía el formulario después de cada envío y se pierden los datos cuando hay un error de validación. Pasar `pending` a `SubmitButton`.
 - Permisos sobre personas: `src/lib/auth/permissions.ts` (`canManageUser`, `assignableRoles`). Toda server action vuelve a chequear permisos aunque la página ya lo haya hecho.
+- Notas: la planilla (`src/app/(app)/notas/[id]/grade-sheet.tsx`) calcula en vivo con `src/lib/grades.ts`; el servidor (`src/lib/grading/results.ts`) usa las mismas funciones. No duplicar fórmulas.
+- Permisos de notas: `src/lib/grading/permissions.ts`. `saveGrades` revalida cada celda (evaluación de la planilla, alumno activo del curso, período abierto).
