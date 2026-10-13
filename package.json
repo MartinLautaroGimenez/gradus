@@ -14,7 +14,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "push:keys": "web-push generate-vapid-keys"
+    "push:keys": "web-push generate-vapid-keys",
+    "crear-admin": "tsx scripts/crear-admin.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",

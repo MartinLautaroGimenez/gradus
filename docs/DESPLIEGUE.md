@@ -9,7 +9,34 @@ servidor de la ETec.
 - Linux con Node.js 22+ y PostgreSQL 14+
 - Un proxy inverso con HTTPS (Caddy, Nginx o Traefik)
 
-## Pasos
+## Instalación automática (recomendada)
+
+En un servidor Debian/Ubuntu (o un contenedor LXC de Proxmox con Debian), como root:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/MartinLautaroGimenez/gradus/main/scripts/instalar.sh
+bash instalar.sh
+```
+
+El script instala PostgreSQL y Node 22, descarga Gradus en `/opt/gradus`,
+genera el `.env` con contraseñas y claves nuevas, aplica las migraciones,
+compila, deja el servicio `gradus` andando y pide los datos del primer
+administrador. Queda accesible en `http://IP-DEL-SERVIDOR:3000`.
+
+Opciones (se pasan como variables antes del comando):
+
+| Variable | Para qué |
+|---|---|
+| `DOMINIO=gradus.ejemplo.com` | Instala Caddy y sirve Gradus por HTTPS con certificado automático (el dominio tiene que apuntar al servidor y los puertos 80/443 tienen que llegarle) |
+| `RAMA=nombre-de-rama` | Instalar otra rama (por defecto `main`) |
+| `DEMO=1` | Cargar los datos de prueba (sólo si la base está vacía) |
+
+Para **actualizar**, se vuelve a correr el mismo script: trae el código nuevo,
+aplica migraciones, recompila y reinicia. No toca el `.env` ni los datos.
+
+Otro administrador (o recuperar el acceso): `cd /opt/gradus && sudo -u gradus HOME=/var/lib/gradus npm run crear-admin`.
+
+## Instalación manual
 
 ```bash
 git clone https://github.com/MartinLautaroGimenez/gradus.git
@@ -19,6 +46,7 @@ npm ci
 npm run db:deploy         # aplica migraciones (no borra datos)
 npm run build
 PORT=3000 npm start
+npm run crear-admin       # primer administrador
 ```
 
 > No correr `npm run db:seed` en un servidor con datos reales: borra todo.
