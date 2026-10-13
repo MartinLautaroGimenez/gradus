@@ -6,21 +6,24 @@ import type { Role } from "@prisma/client";
 import { Logo } from "@/components/logo";
 import { NavLinks } from "./nav-links";
 
-export function MobileNav({ roles, footer }: { roles: Role[]; footer: React.ReactNode }) {
+export function MobileNav({ roles, footer, bell }: { roles: Role[]; footer: React.ReactNode; bell: React.ReactNode }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-surface px-4 md:hidden">
         <Logo />
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="rounded-lg p-2 text-muted hover:bg-surface-muted"
-          aria-label="Abrir menú"
-        >
-          <Menu className="size-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          {bell}
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="rounded-lg p-2 text-muted hover:bg-surface-muted"
+            aria-label="Abrir menú"
+          >
+            <Menu className="size-5" />
+          </button>
+        </div>
       </header>
 
       {open && (

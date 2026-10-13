@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { canTakeAttendance } from "@/lib/attendance-server";
+import { ALERT_LABELS, attendanceAlert, formatAbsences } from "@/lib/attendance";
+import { canTakeAttendance, getAttendanceSettings, totalsByEnrollment } from "@/lib/attendance-server";
+import { notify } from "@/lib/notifications/notify";
 import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { parseDate } from "@/lib/validation";
@@ -54,6 +56,13 @@ export async function saveAttendance(
     return { ok: false, error: "La lista cambió mientras la cargabas. Recargá la página." };
   }
 
+  const settings = await getAttendanceSettings();
+  const enrollmentIds = parsed.data.map((r) => r.enrollmentId);
+  const [previous, totalsBefore] = await Promise.all([
+    db.attendanceRecord.findMany({ where: { date: auth.date, enrollmentId: { in: enrollmentIds } } }),
+    totalsByEnrollment(enrollmentIds, settings),
+  ]);
+
   await db.$transaction(
     parsed.data.map((row) => {
       // Un presente no lleva justificación ni nota.
@@ -70,8 +79,59 @@ export async function saveAttendance(
       });
     }),
   );
+  await notifyFamilies(parsed.data, previous, totalsBefore, settings, isoDate);
   revalidatePath("/asistencia", "layout");
   return { ok: true };
+}
+
+/**
+ * Avisa a las familias (y al alumno) cuando un alumno queda ausente ese día y
+ * cuando cruza un umbral de inasistencias. Al corregir una lista ya tomada
+ * no se repiten los avisos de quienes ya estaban ausentes.
+ */
+async function notifyFamilies(
+  rows: z.infer<typeof rowsSchema>,
+  previous: { enrollmentId: string; status: string }[],
+  totalsBefore: Awaited<ReturnType<typeof totalsByEnrollment>>,
+  settings: Awaited<ReturnType<typeof getAttendanceSettings>>,
+  isoDate: string,
+) {
+  const enrollmentIds = rows.map((r) => r.enrollmentId);
+  const totalsAfter = await totalsByEnrollment(enrollmentIds, settings);
+  const people = await db.enrollment.findMany({
+    where: { id: { in: enrollmentIds } },
+    select: {
+      id: true,
+      student: { select: { userId: true, user: { select: { firstName: true } }, guardians: { select: { guardianId: true } } } },
+    },
+  });
+  const day = new Date(`${isoDate}T12:00:00Z`).toLocaleDateString("es-AR", { day: "numeric", month: "numeric", timeZone: "UTC" });
+
+  for (const person of people) {
+    const row = rows.find((r) => r.enrollmentId === person.id)!;
+    const guardians = person.student.guardians.map((g) => g.guardianId);
+    const name = person.student.user.firstName;
+    const wasAbsent = previous.some((p) => p.enrollmentId === person.id && p.status === "AUSENTE");
+    if (row.status === "AUSENTE" && !wasAbsent) {
+      await notify(guardians, {
+        kind: "ASISTENCIA",
+        title: `${name} estuvo ausente hoy (${day})`,
+        body: row.justified ? "La inasistencia figura como justificada." : "Si corresponde, podés justificarla en preceptoría.",
+        link: "/asistencia",
+      });
+    }
+    const before = attendanceAlert(totalsBefore.get(person.id)!.total, settings.maxAbsences);
+    const after = attendanceAlert(totalsAfter.get(person.id)!.total, settings.maxAbsences);
+    const order = ["OK", "ATENCION", "CRITICO", "LIBRE"];
+    if (order.indexOf(after) > order.indexOf(before)) {
+      await notify([...guardians, person.student.userId], {
+        kind: "ASISTENCIA",
+        title: `Inasistencias de ${name}: ${ALERT_LABELS[after].toLowerCase()}`,
+        body: `Lleva ${formatAbsences(totalsAfter.get(person.id)!.total)} de ${settings.maxAbsences} inasistencias permitidas.`,
+        link: "/asistencia",
+      });
+    }
+  }
 }
 
 /** Borra la lista de un día (por si se tomó en la fecha equivocada). */

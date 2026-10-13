@@ -77,8 +77,8 @@ también es padre de un alumno) y ve lo que corresponde a cada uno.
 | **Personas y legajos** | Alta y edición de alumnos, familias y personal; matrículas; vínculos familiares; carga masiva desde planillas | ✅ 2 |
 | **Calificaciones** | Planilla tipo Excel por materia y período, promedios ponderados, cierre de período, instancias de diciembre y febrero, exportación a Excel, vista de notas para alumnos y familias | ✅ 3 |
 | **Asistencia** | Lista diaria del preceptor (con teclado), llegadas tarde y retiros, justificaciones, planilla mensual exportable, alertas al acercarse al tope | ✅ 4 |
-| **Comunicados** | Circulares por escuela, curso o rol, adjuntos, confirmación de lectura ("notificado"), seguimiento de quién no leyó | 5 |
-| **Notificaciones** | Bandeja dentro de la app, push (PWA) y email, con preferencias por usuario | 5 |
+| **Comunicados** | Circulares por escuela, curso o rol, adjuntos, confirmación de lectura ("notificado"), seguimiento de quién no leyó y recordatorios | ✅ 5 |
+| **Notificaciones** | Bandeja con campana, push (PWA) y email opcional, con registro de entrega | ✅ 5 |
 | **Mensajería** | Chat familia ↔ docente, preceptor o directivo, con reglas de quién puede escribir a quién | 6 |
 | **Convivencia** | Observaciones, sanciones y actas (las aplican preceptores y directivos), notificación y firma de la familia | 6 |
 | **Calendario** | Evaluaciones, actos, feriados y eventos por curso | 7 |
@@ -99,7 +99,7 @@ punta: modelo de datos, pantallas, permisos y tests.
 3. ✅ **Calificaciones:** planilla tipo Excel, resultado final por materia y
    vista para alumnos y familias.
 4. ✅ **Asistencia.**
-5. **Comunicados y notificaciones.**
+5. ✅ **Comunicados y notificaciones.**
 6. **Mensajería y convivencia.**
 7. **Calendario y autorizaciones.**
 8. **Reportes.**
@@ -172,6 +172,25 @@ pide cambiar el estado del alumno a Pase o Baja.
   cada inasistencia con su motivo.
 - Se guarda una fila por alumno y día (también los presentes) para distinguir
   "presente" de "no se tomó lista".
+
+## Comunicados y notificaciones
+
+- **Quién envía:** dirección y administración, a cualquier grupo (familias,
+  alumnos, docentes, preceptores, administración, directivos), a toda la
+  escuela o a cursos. Preceptores y docentes, sólo a familias y alumnos de sus
+  cursos.
+- Los destinatarios se calculan al enviar y quedan registrados: se ve quién
+  lo leyó y, si se pidió, quién se notificó (con fecha y hora). Con un botón
+  se manda un recordatorio a los que faltan.
+- Adjuntos: hasta 5 archivos de 10 MB (PDF, imágenes, Office). Se descargan
+  sólo si la persona es destinataria, autora o del personal.
+- **Notificaciones:** todo aviso queda en la bandeja (campana con contador).
+  Además se envía por push al celular/computadora si la persona lo activó, y
+  por email si el servidor tiene SMTP y la persona tiene email. Se registra
+  cuándo salió cada push y cada email.
+- Avisos automáticos de asistencia: a la familia cuando el alumno queda
+  ausente ese día, y a la familia y al alumno cuando cruza un umbral de
+  inasistencias.
 
 ## Cuentas y contraseñas
 

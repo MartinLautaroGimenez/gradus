@@ -32,7 +32,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/inicio", label: "Inicio", icon: Home, available: true },
   { href: "/notas", label: "Notas", icon: BookOpen, available: true },
   { href: "/asistencia", label: "Asistencia", icon: ClipboardCheck, available: true },
-  { href: "/comunicados", label: "Comunicados", icon: Megaphone, available: false },
+  { href: "/comunicados", label: "Comunicados", icon: Megaphone, available: true },
   { href: "/mensajes", label: "Mensajes", icon: MessageCircle, available: false },
   { href: "/convivencia", label: "Convivencia", icon: ShieldAlert, available: false },
   { href: "/calendario", label: "Calendario", icon: CalendarDays, available: false },

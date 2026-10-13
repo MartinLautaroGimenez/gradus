@@ -16,5 +16,5 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   // Excluye archivos estáticos, íconos y el manifiesto de la PWA.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|manifest.webmanifest|.*\\.(?:png|svg|ico)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|manifest.webmanifest|sw.js|.*\\.(?:png|svg|ico)$).*)"],
 };

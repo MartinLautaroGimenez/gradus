@@ -32,6 +32,9 @@ async function main() {
 
   console.log("Limpiando base…");
   await db.$transaction([
+    db.notification.deleteMany(),
+    db.attachment.deleteMany(),
+    db.announcement.deleteMany(),
     db.attendanceRecord.deleteMany(),
     db.grade.deleteMany(),
     db.assessment.deleteMany(),
@@ -140,10 +143,27 @@ async function main() {
     data: { studentId: studentsByCourse[1][2], guardianId: teachers[3].id, relationship: "MADRE", isPrimary: true },
   });
 
+  // El resto de los alumnos también tiene un adulto responsable.
+  const linked = new Set([studentsByCourse[0][0], studentsByCourse[2][0], studentsByCourse[1][2]]);
+  const ADULT_NAMES = ["Laura", "Gustavo", "Carla", "Pablo", "Verónica", "Martín", "Natalia", "Sergio", "Florencia", "Diego"];
+  let adult = 0;
+  for (const studentId of studentsByCourse.flat()) {
+    if (linked.has(studentId)) continue;
+    const student = await db.student.findUniqueOrThrow({ where: { id: studentId }, include: { user: true } });
+    const firstName = ADULT_NAMES[adult % ADULT_NAMES.length];
+    const guardian = await user(`tutor${adult + 1}@gradus.local`, firstName, student.user.lastName, ["TUTOR"]);
+    await db.studentGuardian.create({
+      data: { studentId, guardianId: guardian.id, relationship: adult % 2 === 0 ? "MADRE" : "PADRE", isPrimary: true },
+    });
+    adult++;
+  }
+
   console.log("Cargando notas…");
   await seedGrades(year.id);
   console.log("Cargando asistencia…");
   await seedAttendance(year.id);
+  console.log("Cargando comunicados…");
+  await seedAnnouncements();
 
   console.log(`Listo. Contraseña de todos los usuarios: ${PASSWORD}`);
 }
@@ -236,6 +256,64 @@ async function seedAttendance(academicYearId: string) {
     });
   });
   await db.attendanceRecord.createMany({ data });
+}
+
+async function seedAnnouncements() {
+  const director = await db.user.findUniqueOrThrow({ where: { email: "directora@gradus.local" } });
+  const preceptor = await db.user.findUniqueOrThrow({ where: { email: "preceptor@gradus.local" } });
+  const families = await db.user.findMany({ where: { roles: { has: "TUTOR" } }, select: { id: true } });
+  const course = await db.course.findFirstOrThrow({ where: { grade: 1, division: "A" } });
+  // Alumnos de 1° A y sus familias.
+  const courseStudents = await db.user.findMany({
+    where: {
+      OR: [
+        { studentProfile: { enrollments: { some: { courseId: course.id } } } },
+        { guardianOf: { some: { student: { enrollments: { some: { courseId: course.id } } } } } },
+      ],
+    },
+    select: { id: true },
+  });
+
+  const welcome = await db.announcement.create({
+    data: {
+      title: "Bienvenidos a Gradus",
+      body: "Desde ahora las notas, la asistencia y los comunicados de la escuela están en Gradus.\n\nActiven las notificaciones desde la campana para enterarse de todo al instante.",
+      authorId: director.id,
+      targetRoles: ["TUTOR"],
+      requiresAck: true,
+      createdAt: new Date("2026-10-01T12:00:00Z"),
+      recipients: { createMany: { data: families.map((f) => ({ userId: f.id })) } },
+    },
+  });
+  const trip = await db.announcement.create({
+    data: {
+      title: "Salida al Museo de Ciencias — 1° A",
+      body: "El viernes 23 de octubre 1° A visita el Museo de Ciencias. Salimos 8:30 y volvemos 12:30. Traer vianda y la autorización firmada.",
+      authorId: preceptor.id,
+      targetRoles: ["TUTOR", "ALUMNO"],
+      createdAt: new Date("2026-10-09T15:00:00Z"),
+      courses: { create: { courseId: course.id } },
+      recipients: { createMany: { data: courseStudents.map((s) => ({ userId: s.id })) } },
+    },
+  });
+  await db.notification.createMany({
+    data: [
+      ...families.map((f) => ({
+        userId: f.id,
+        kind: "COMUNICADO" as const,
+        title: `Comunicado (requiere notificarse): ${welcome.title}`,
+        link: `/comunicados/${welcome.id}`,
+        createdAt: welcome.createdAt,
+      })),
+      ...courseStudents.map((st) => ({
+        userId: st.id,
+        kind: "COMUNICADO" as const,
+        title: `Comunicado: ${trip.title}`,
+        link: `/comunicados/${trip.id}`,
+        createdAt: trip.createdAt,
+      })),
+    ],
+  });
 }
 
 main()

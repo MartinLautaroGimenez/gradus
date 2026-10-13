@@ -2,8 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
-    // Las planillas de importación pueden pesar hasta 2 MB (ver read-spreadsheet.ts).
-    serverActions: { bodySizeLimit: "3mb" },
+    // Adjuntos de comunicados: hasta 5 archivos de 10 MB (ver src/lib/storage.ts).
+    serverActions: { bodySizeLimit: "52mb" },
   },
 };
 

@@ -23,6 +23,20 @@ PORT=3000 npm start
 
 > No correr `npm run db:seed` en un servidor con datos reales: borra todo.
 
+## Variables de entorno
+
+| Variable | Para qué |
+|---|---|
+| `DATABASE_URL` | Conexión a PostgreSQL (obligatoria) |
+| `APP_URL` | URL pública, para los enlaces de los emails |
+| `STORAGE_DIR` | Carpeta de adjuntos (por defecto `./storage`). Usar una ruta absoluta e incluirla en el backup |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Notificaciones push. Generar una vez con `npm run push:keys` y no cambiarlas (si cambian, cada persona tiene que volver a activar las notificaciones) |
+| `SMTP_URL`, `MAIL_FROM` | Envío de emails (opcional). Ej.: `smtps://usuario:clave@smtp.gmail.com:465` |
+| `COOKIE_SECURE=false` | Sólo para probar por HTTP en la red local |
+
+Las notificaciones push necesitan HTTPS. En iPhone sólo funcionan si la persona
+agregó Gradus a la pantalla de inicio y lo abre desde ahí.
+
 ## Servicio systemd
 
 `/etc/systemd/system/gradus.service`:
@@ -79,4 +93,5 @@ Programar un `pg_dump` diario y guardar copias fuera del servidor:
 
 ```bash
 pg_dump -Fc gradus > /backups/gradus-$(date +%F).dump
+tar czf /backups/gradus-storage-$(date +%F).tgz -C /var/lib/gradus storage
 ```

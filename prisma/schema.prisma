@@ -68,15 +68,22 @@ model User {
   /// Las cuentas creadas por la escuela arrancan con una contraseña inicial
   /// (el DNI) y deben cambiarla en el primer ingreso.
   mustChangePassword Boolean   @default(false)
+  /// Recibir por email las notificaciones (además de la bandeja y el push).
+  emailNotifications Boolean   @default(true)
 
   sessions Session[]
 
-  studentProfile      Student?
-  guardianOf          StudentGuardian[]
-  preceptorOfCourses  Course[]           @relation("CoursePreceptor")
-  teachingAssignments CourseSubject[]    @relation("CourseSubjectTeacher")
-  gradesUpdated       Grade[]
-  attendanceRecorded  AttendanceRecord[]
+  studentProfile        Student?
+  guardianOf            StudentGuardian[]
+  preceptorOfCourses    Course[]                @relation("CoursePreceptor")
+  teachingAssignments   CourseSubject[]         @relation("CourseSubjectTeacher")
+  gradesUpdated         Grade[]
+  attendanceRecorded    AttendanceRecord[]
+  notifications         Notification[]
+  pushSubscriptions     PushSubscription[]
+  announcements         Announcement[]
+  announcementsReceived AnnouncementRecipient[]
+  attachmentsUploaded   Attachment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -187,8 +194,9 @@ model Course {
   preceptorId    String?
   preceptor      User?        @relation("CoursePreceptor", fields: [preceptorId], references: [id], onDelete: SetNull)
 
-  subjects    CourseSubject[]
-  enrollments Enrollment[]
+  subjects      CourseSubject[]
+  enrollments   Enrollment[]
+  announcements AnnouncementCourse[]
 
   @@unique([academicYearId, level, grade, division])
 }
@@ -365,4 +373,114 @@ model AttendanceRecord {
 
   @@unique([enrollmentId, date])
   @@index([date])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Notificaciones
+// ─────────────────────────────────────────────────────────────
+
+enum NotificationKind {
+  COMUNICADO
+  MENSAJE
+  ASISTENCIA
+  CONVIVENCIA
+  AUTORIZACION
+  CALENDARIO
+  NOTA
+  SISTEMA
+}
+
+/// Aviso en la bandeja de una persona. Además se intenta enviar por push y
+/// por email; se registra cuándo salió cada uno para poder auditar entregas.
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind        NotificationKind
+  title       String
+  body        String?
+  /// Ruta interna a la que lleva el aviso (por ejemplo /comunicados/abc).
+  link        String?
+  readAt      DateTime?
+  pushSentAt  DateTime?
+  emailSentAt DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+/// Suscripción Web Push de un navegador/dispositivo.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Comunicados
+// ─────────────────────────────────────────────────────────────
+
+/// Comunicado institucional o de curso. Los destinatarios se calculan al
+/// publicarlo y quedan guardados, así se sabe quién lo leyó y quién no.
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  body        String
+  authorId    String?
+  author      User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  /// Pide confirmación de lectura ("notificado").
+  requiresAck Boolean  @default(false)
+  /// Roles destinatarios (TUTOR = familias).
+  targetRoles Role[]
+  createdAt   DateTime @default(now())
+
+  /// Vacío = toda la escuela.
+  courses     AnnouncementCourse[]
+  recipients  AnnouncementRecipient[]
+  attachments Attachment[]
+}
+
+model AnnouncementCourse {
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  courseId       String
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([announcementId, courseId])
+}
+
+model AnnouncementRecipient {
+  id             String       @id @default(cuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt         DateTime?
+  acknowledgedAt DateTime?
+
+  @@unique([announcementId, userId])
+  @@index([userId])
+}
+
+/// Archivo adjunto. Se guarda en disco (STORAGE_DIR) y se descarga por
+/// /archivos/[id], que controla permisos.
+model Attachment {
+  id             String        @id @default(cuid())
+  fileName       String
+  mimeType       String
+  size           Int
+  storageKey     String        @unique
+  uploadedById   String?
+  uploadedBy     User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  announcementId String?
+  announcement   Announcement? @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
 }
