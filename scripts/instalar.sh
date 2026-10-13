@@ -18,11 +18,20 @@
 
 set -euo pipefail
 
+# Git como root sobre una copia de otro usuario: git la rechaza ("dubious
+# ownership") salvo que esté marcada como segura en la configuración global.
+# Se usa una configuración global temporal sólo para estos comandos, sin tocar
+# la del sistema.
+GIT_SEGURO="$(mktemp)"
+trap 'rm -f "$GIT_SEGURO"' EXIT
+printf '[safe]\n\tdirectory = *\n' > "$GIT_SEGURO"
+git_root() { GIT_CONFIG_GLOBAL="$GIT_SEGURO" git "$@"; }
+
 # De dónde se toma el código: la copia desde la que se corre el script, o un repositorio.
 COPIA="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 if [[ -z "${ORIGEN:-}" && -d "$COPIA/.git" ]]; then ORIGEN="$COPIA"; fi
 ORIGEN="${ORIGEN:-https://github.com/MartinLautaroGimenez/gradus.git}"
-if [[ -z "${RAMA:-}" && -d "$ORIGEN/.git" ]]; then RAMA="$(git -C "$ORIGEN" rev-parse --abbrev-ref HEAD)"; fi
+if [[ -z "${RAMA:-}" && -d "$ORIGEN/.git" ]]; then RAMA="$(git_root -C "$ORIGEN" rev-parse --abbrev-ref HEAD)"; fi
 RAMA="${RAMA:-main}"
 DOMINIO="${DOMINIO:-}"
 PUERTO="${PUERTO:-3000}"
@@ -66,7 +75,6 @@ chmod 750 "$DATOS"
 
 # Las operaciones de git se hacen como root (puede leer la copia aunque esté en
 # una carpeta personal) y después la carpeta pasa a ser del usuario gradus.
-git_root() { git -c safe.directory='*' "$@"; }
 [[ "$ORIGEN" != "$DIR" ]] || error "Corré el script desde tu copia del repositorio, no desde $DIR."
 if [[ -d "$DIR/.git" ]]; then
   paso "Actualizando el código (rama $RAMA desde $ORIGEN)"
