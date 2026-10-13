@@ -47,6 +47,14 @@ export async function destroySession() {
   store.delete(SESSION_COOKIE);
 }
 
+/** Cierra todas las sesiones del usuario salvo la actual (por ejemplo, al cambiar la contraseña). */
+export async function destroyOtherSessions(userId: string) {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  await db.session.deleteMany({
+    where: { userId, ...(token ? { tokenHash: { not: hashToken(token) } } : {}) },
+  });
+}
+
 /** Usuario de la sesión actual, o null. Se memoriza por request. */
 export const getCurrentUser = cache(async () => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -56,7 +64,16 @@ export const getCurrentUser = cache(async () => {
     where: { tokenHash: hashToken(token) },
     include: {
       user: {
-        select: { id: true, email: true, firstName: true, lastName: true, roles: true, active: true },
+        select: {
+          id: true,
+          dni: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          roles: true,
+          active: true,
+          mustChangePassword: true,
+        },
       },
     },
   });
@@ -67,10 +84,14 @@ export const getCurrentUser = cache(async () => {
 
 export type CurrentUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
 
-/** Para páginas protegidas: redirige al login si no hay sesión. */
+/**
+ * Para páginas protegidas: redirige al login si no hay sesión, y al cambio de
+ * contraseña si todavía usa la inicial.
+ */
 export async function requireUser() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  if (user.mustChangePassword) redirect("/cuenta/contrasena");
   return user;
 }
 

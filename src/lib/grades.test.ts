@@ -58,7 +58,7 @@ describe("weightedAverage", () => {
 
 describe("annualAverage", () => {
   it("promedia lo que se ve en pantalla", () => {
-    // Trimestres de 6.666... → se muestra 6.67; anual = (6.67 + 6.67 + 7) / 3 = 6.78
+    // Períodos de 6.666... → se muestra 6.67; anual = (6.67 + 6.67 + 7) / 3 = 6.78
     expect(annualAverage([20 / 3, 20 / 3, 7])).toBe(6.78);
   });
 

@@ -21,9 +21,11 @@ model School {
   name          String
   shortName     String
   /// Nota mínima de aprobación (escala 1 a 10).
-  passingGrade  Decimal @default(6) @db.Decimal(4, 2)
+  passingGrade  Decimal @default(7) @db.Decimal(4, 2)
   /// Decimales con los que se muestran y redondean los promedios.
   gradeDecimals Int     @default(2)
+  /// Tope de inasistencias por ciclo lectivo antes de quedar libre.
+  maxAbsences   Int     @default(20)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -46,16 +48,21 @@ enum Role {
 /// Una persona que puede iniciar sesión. Una misma persona puede tener
 /// varios roles (por ejemplo, un docente que además es tutor de un alumno).
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  dni          String?   @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  phone        String?
-  roles        Role[]
-  active       Boolean   @default(true)
-  lastLoginAt  DateTime?
+  id                 String    @id @default(cuid())
+  /// Documento sin puntos. Es el dato con el que se identifica a cada persona.
+  dni                String    @unique
+  /// Opcional: muchos alumnos no tienen email y entran con el DNI.
+  email              String?   @unique
+  passwordHash       String
+  firstName          String
+  lastName           String
+  phone              String?
+  roles              Role[]
+  active             Boolean   @default(true)
+  lastLoginAt        DateTime?
+  /// Las cuentas creadas por la escuela arrancan con una contraseña inicial
+  /// (el DNI) y deben cambiarla en el primer ingreso.
+  mustChangePassword Boolean   @default(false)
 
   sessions Session[]
 
@@ -119,14 +126,22 @@ model AcademicYear {
   updatedAt DateTime @updatedAt
 }
 
-/// Período de calificación dentro de un ciclo (trimestre, cuatrimestre,
-/// instancias de diciembre/febrero, etc.).
+enum PeriodKind {
+  /// Cuatrimestre o trimestre: cuenta para el promedio anual.
+  REGULAR
+  /// Instancias de diciembre y febrero para quienes no aprobaron.
+  COMPENSATORIO
+}
+
+/// Período de calificación dentro de un ciclo: los cuatrimestres y las
+/// instancias compensatorias de diciembre y febrero.
 model GradingPeriod {
   id             String       @id @default(cuid())
   academicYearId String
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   name           String
   order          Int
+  kind           PeriodKind   @default(REGULAR)
   startDate      DateTime     @db.Date
   endDate        DateTime     @db.Date
   /// Cuando se cierra, los docentes ya no pueden modificar notas del período.

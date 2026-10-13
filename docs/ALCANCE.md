@@ -23,14 +23,13 @@ Cada una se convierte en una regla de diseño:
 | Problema actual | Cómo lo encara Gradus |
 |---|---|
 | Los promedios no dan bien | Toda cuenta pasa por un único módulo con tests automáticos (`src/lib/grades.ts`). Se calcula con enteros, sin errores de punto flotante, y con reglas de redondeo escritas (ver abajo). |
-| Las notas cargadas no aparecen | Una nota guardada es visible al instante para quien corresponda. Si hay una publicación diferida (por ejemplo, al cierre del trimestre), la pantalla lo dice explícitamente en vez de mostrar un vacío. |
+| Las notas cargadas no aparecen | Una nota guardada es visible al instante para quien corresponda. Si hay una publicación diferida (por ejemplo, al cierre del cuatrimestre), la pantalla lo dice explícitamente en vez de mostrar un vacío. |
 | No llegan las notificaciones | Cada aviso queda registrado con su estado (enviado, entregado, leído). Si el push falla, el aviso sigue en la bandeja dentro de la app y se puede reenviar por email. |
 | Lento e incómodo en el celular | Diseño pensado primero para el celular, páginas livianas e instalación como app. |
 
 ### Reglas de cálculo de promedios
 
-1. Escala de 1 a 10. La nota de aprobación se configura por escuela
-   (por defecto 6; **a confirmar con la ETec**).
+1. Escala de 1 a 10. Se aprueba con **7** (configurable en Configuración).
 2. Promedio de un período = promedio ponderado de sus evaluaciones (los pesos
    son opcionales y por defecto valen 1).
 3. Redondeo **mitad hacia arriba** con 2 decimales (configurable): 6,995 → 7,00.
@@ -40,6 +39,19 @@ Cada una se convierte en una regla de diseño:
    mismo.
 5. "Sin notas" no es lo mismo que "0": un período sin evaluaciones no baja el
    promedio, se muestra como "—".
+6. El promedio anual se calcula con los dos cuatrimestres (períodos
+   *regulares*). Diciembre y febrero son instancias *compensatorias* para
+   quienes no aprobaron y no entran en ese promedio.
+
+### Reglas de la ETec
+
+| Tema | Regla |
+|---|---|
+| Nota de aprobación | 7 |
+| Períodos | 1° y 2° cuatrimestre, más las instancias de diciembre y febrero |
+| Asistencia | Tope de 20 inasistencias por ciclo lectivo |
+| Sanciones | Las aplican preceptores y directivos |
+| Boletín | No se emite: las familias ven las notas en la plataforma |
 
 ## Roles
 
@@ -61,14 +73,14 @@ también es padre de un alumno) y ve lo que corresponde a cada uno.
 | Módulo | Contenido | Etapa |
 |---|---|---|
 | **Base** | Login (email o DNI), sesiones, roles, navegación, inicio por rol, PWA | ✅ 1 |
-| **Gestión académica** | Ciclos lectivos, períodos, materias, cursos y divisiones, asignación de docentes y preceptores | 2 |
-| **Personas y legajos** | Alta y edición de alumnos, familias y personal; matrículas; vínculos familiares; carga masiva desde planillas | 2 |
-| **Calificaciones** | Evaluaciones por materia y período, carga rápida tipo planilla, promedios, cierre de período, boletín en PDF | 3 |
-| **Asistencia** | Toma diaria del preceptor, asistencia por materia, llegadas tarde, justificaciones, alertas por cantidad de faltas | 4 |
+| **Gestión académica** | Ciclos lectivos, períodos, materias, cursos y divisiones, asignación de docentes y preceptores | ✅ 2 |
+| **Personas y legajos** | Alta y edición de alumnos, familias y personal; matrículas; vínculos familiares; carga masiva desde planillas | ✅ 2 |
+| **Calificaciones** | Evaluaciones por materia y período, carga rápida tipo planilla, promedios, cierre de período, instancias de diciembre y febrero | 3 |
+| **Asistencia** | Toma diaria del preceptor, asistencia por materia, llegadas tarde, justificaciones, alertas al acercarse al tope de 20 faltas | 4 |
 | **Comunicados** | Circulares por escuela, curso o rol, adjuntos, confirmación de lectura ("notificado"), seguimiento de quién no leyó | 5 |
 | **Notificaciones** | Bandeja dentro de la app, push (PWA) y email, con preferencias por usuario | 5 |
 | **Mensajería** | Chat familia ↔ docente, preceptor o directivo, con reglas de quién puede escribir a quién | 6 |
-| **Convivencia** | Observaciones, sanciones y actas, notificación y firma de la familia | 6 |
+| **Convivencia** | Observaciones, sanciones y actas (las aplican preceptores y directivos), notificación y firma de la familia | 6 |
 | **Calendario** | Evaluaciones, actos, feriados y eventos por curso | 7 |
 | **Autorizaciones** | Salidas educativas y permisos con firma digital de la familia | 7 |
 | **Reportes** | Rendimiento por curso y materia, ausentismo, alumnos en riesgo | 8 |
@@ -79,10 +91,11 @@ también es padre de un alumno) y ve lo que corresponde a cada uno.
 Cada etapa se entrega como un pull request revisable y funcionando de punta a
 punta: modelo de datos, pantallas, permisos y tests.
 
-1. **Base del proyecto** (este PR): estructura, login, roles, inicio por rol,
+1. ✅ **Base del proyecto:** estructura, login, roles, inicio por rol,
    cálculo de promedios con tests y datos de prueba.
-2. **Gestión académica y personas:** pantallas de administración para no
-   depender de los datos de prueba.
+2. ✅ **Gestión académica y personas:** configuración de la escuela y ciclos,
+   materias, cursos, personas, familias, matrículas e importación desde
+   planillas.
 3. **Calificaciones:** el corazón del sistema.
 4. **Asistencia.**
 5. **Comunicados y notificaciones.**
@@ -102,14 +115,21 @@ punta: modelo de datos, pantallas, permisos y tests.
 | Despliegue | Node.js + systemd + proxy con HTTPS, sin Docker | Simple de mantener en el homelab y en el servidor de la ETec. |
 | Idioma | Interfaz y documentación en español; código en inglés | |
 
-## Para confirmar con la ETec
+## Cuentas y contraseñas
 
-- Nota mínima de aprobación y si se usan decimales en el boletín.
-- Cantidad y fechas de los períodos (se asumieron 3 trimestres) y las
-  instancias de diciembre y febrero.
-- Régimen de asistencia: límite de inasistencias, cómo cuentan las llegadas
-  tarde y las faltas por materia.
-- Régimen de convivencia vigente: tipos de sanción y quién puede aplicarlas.
-- Formato oficial del boletín.
-- Si los alumnos se loguean con email o DNI, y quién entrega las contraseñas
-  iniciales.
+- Todas las personas se identifican por su **DNI**; el email es opcional.
+- Las cuentas que crea la escuela (a mano o por importación) arrancan con el
+  DNI como contraseña y se pide cambiarla en el primer ingreso.
+- Si alguien se olvida la contraseña, el personal la restablece desde su ficha
+  en Personas: vuelve a ser el DNI y se cierran sus sesiones abiertas.
+- Desactivar una cuenta impide el ingreso y cierra sus sesiones. No se borran
+  personas, para no perder su historial.
+- Permisos sobre personas: un administrativo no puede modificar directivos ni
+  administradores; un directivo no puede modificar administradores del sistema.
+  Nadie puede cambiar sus propios roles.
+
+## Pendiente de definir
+
+- Tipos de sanción del régimen de convivencia (se definen antes de la etapa 6).
+- Cómo cuentan las llegadas tarde y las faltas por materia respecto del tope
+  de 20 inasistencias (antes de la etapa 4).

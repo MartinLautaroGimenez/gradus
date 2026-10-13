@@ -20,8 +20,9 @@ function greeting() {
   return "Buenas noches";
 }
 
-export default async function InicioPage() {
+export default async function InicioPage({ searchParams }: { searchParams: Promise<{ contrasena?: string }> }) {
   const user = await requireUser();
+  const { contrasena } = await searchParams;
   const year = await db.academicYear.findFirst({ where: { active: true } });
   const is = (roles: Role[]) => hasAnyRole(user, roles);
 
@@ -35,6 +36,12 @@ export default async function InicioPage() {
           {year ? `Ciclo lectivo ${year.year}` : "No hay un ciclo lectivo activo"}
         </p>
       </header>
+
+      {contrasena && (
+        <p role="status" className="rounded-lg bg-success-soft px-3 py-2 text-sm text-success">
+          Listo, tu contraseña se actualizó.
+        </p>
+      )}
 
       {year && is(STAFF_ROLES) && <SchoolOverview yearId={year.id} />}
       {year && is(["PRECEPTOR"]) && <PreceptorCourses userId={user.id} yearId={year.id} />}

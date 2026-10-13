@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BookOpen,
+  BookText,
   CalendarDays,
   ClipboardCheck,
   FileSignature,
@@ -42,10 +43,11 @@ export const NAV_ITEMS: NavItem[] = [
     roles: [...STAFF, "PRECEPTOR", "TUTOR"],
     available: false,
   },
-  { href: "/cursos", label: "Cursos", icon: School, roles: [...STAFF, "PRECEPTOR"], available: false },
-  { href: "/personas", label: "Personas", icon: Users, roles: STAFF, available: false },
+  { href: "/cursos", label: "Cursos", icon: School, roles: [...STAFF, "PRECEPTOR"], available: true },
+  { href: "/materias", label: "Materias", icon: BookText, roles: STAFF, available: true },
+  { href: "/personas", label: "Personas", icon: Users, roles: STAFF, available: true },
   { href: "/reportes", label: "Reportes", icon: BarChart3, roles: ["SUPERADMIN", "DIRECTIVO"], available: false },
-  { href: "/configuracion", label: "Configuración", icon: Settings, roles: ["SUPERADMIN", "DIRECTIVO"], available: false },
+  { href: "/configuracion", label: "Configuración", icon: Settings, roles: ["SUPERADMIN", "DIRECTIVO"], available: true },
 ];
 
 export function navItemsFor(roles: Role[]) {

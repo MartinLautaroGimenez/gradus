@@ -4,6 +4,7 @@
  */
 import { PrismaClient, type Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { defaultPeriods } from "../src/lib/periods";
 
 const db = new PrismaClient();
 const PASSWORD = "gradus123";
@@ -53,19 +54,14 @@ async function main() {
 
   await db.school.create({ data: { name: "Escuela Técnica de la Universidad de Mendoza", shortName: "ETec" } });
 
+  const periods = defaultPeriods(2026);
   const year = await db.academicYear.create({
     data: {
       year: 2026,
-      startDate: new Date("2026-02-23"),
-      endDate: new Date("2026-12-11"),
+      startDate: periods[0].startDate,
+      endDate: periods.at(-1)!.endDate,
       active: true,
-      periods: {
-        create: [
-          { name: "1° Trimestre", order: 1, startDate: new Date("2026-02-23"), endDate: new Date("2026-05-29") },
-          { name: "2° Trimestre", order: 2, startDate: new Date("2026-06-01"), endDate: new Date("2026-09-04") },
-          { name: "3° Trimestre", order: 3, startDate: new Date("2026-09-07"), endDate: new Date("2026-12-11") },
-        ],
-      },
+      periods: { create: periods },
     },
   });
 
