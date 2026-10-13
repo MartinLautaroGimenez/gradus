@@ -81,8 +81,8 @@ también es padre de un alumno) y ve lo que corresponde a cada uno.
 | **Notificaciones** | Bandeja con campana, push (PWA) y email opcional, con registro de entrega | ✅ 5 |
 | **Mensajería** | Chat familia ↔ docente, preceptor o directivo, con reglas de quién puede escribir a quién | ✅ 6 |
 | **Convivencia** | Observaciones, reconocimientos y sanciones (las aplican preceptores y directivos), firma de la familia con comentario | ✅ 6 |
-| **Calendario** | Evaluaciones, actos, feriados y eventos por curso | 7 |
-| **Autorizaciones** | Salidas educativas y permisos con firma digital de la familia | 7 |
+| **Calendario** | Vista mensual y agenda; evaluaciones de la planilla automáticas; feriados, actos, reuniones y salidas por escuela o curso | ✅ 7 |
+| **Autorizaciones** | Salidas educativas y permisos con respuesta digital de la familia, plazo y seguimiento | ✅ 7 |
 | **Reportes** | Rendimiento por curso y materia, ausentismo, alumnos en riesgo | 8 |
 | Futuro | Horarios, tareas, inscripciones online, cuotas y pagos (hoy los maneja la Universidad), otros niveles | — |
 
@@ -101,7 +101,7 @@ punta: modelo de datos, pantallas, permisos y tests.
 4. ✅ **Asistencia.**
 5. ✅ **Comunicados y notificaciones.**
 6. ✅ **Mensajería y convivencia.**
-7. **Calendario y autorizaciones.**
+7. ✅ **Calendario y autorizaciones.**
 8. **Reportes.**
 
 ## Decisiones técnicas
@@ -218,6 +218,28 @@ aviso por conversación (no uno por mensaje) mientras no se lea.
   registró).
 - Ven el registro: el alumno, su familia, el preceptor y los docentes del
   curso, y el personal.
+
+## Calendario
+
+- Vista mensual (lunes a domingo) y agenda del mes. Cada persona ve los
+  eventos de toda la escuela y los de sus cursos (familias: los de cada hijo,
+  con filtro).
+- Las evaluaciones con fecha cargadas en la planilla de notas aparecen solas.
+- La dirección y administración cargan cualquier evento (incluidos feriados y
+  recesos) para toda la escuela o por curso. Docentes y preceptores cargan
+  evaluaciones, salidas, reuniones y actos para sus cursos.
+- Al cargar un evento se puede avisar a las familias y alumnos.
+
+## Autorizaciones
+
+- Docentes, preceptores y la dirección piden autorización para uno o más
+  cursos, con fecha de la actividad y plazo para responder. Opcionalmente se
+  agrega al calendario.
+- Cada familia responde por cada hijo "Autorizo / No autorizo" con un
+  comentario. Queda registrado quién respondió y cuándo; se puede cambiar
+  hasta el plazo.
+- Seguimiento por alumno con filtro de quienes no respondieron y recordatorio
+  con un botón.
 
 ## Cuentas y contraseñas
 

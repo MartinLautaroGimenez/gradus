@@ -32,6 +32,8 @@ async function main() {
 
   console.log("Limpiando base…");
   await db.$transaction([
+    db.authorizationRequest.deleteMany(),
+    db.calendarEvent.deleteMany(),
     db.incident.deleteMany(),
     db.conversation.deleteMany(),
     db.notification.deleteMany(),
@@ -168,6 +170,8 @@ async function main() {
   await seedAnnouncements();
   console.log("Cargando mensajes y convivencia…");
   await seedMessagesAndIncidents();
+  console.log("Cargando calendario y autorizaciones…");
+  await seedCalendarAndAuthorizations();
 
   console.log(`Listo. Contraseña de todos los usuarios: ${PASSWORD}`);
 }
@@ -377,6 +381,80 @@ async function seedMessagesAndIncidents() {
       },
     ],
   });
+}
+
+async function seedCalendarAndAuthorizations() {
+  const director = await db.user.findUniqueOrThrow({ where: { email: "directora@gradus.local" } });
+  const preceptor = await db.user.findUniqueOrThrow({ where: { email: "preceptor@gradus.local" } });
+  const course1A = await db.course.findFirstOrThrow({ where: { grade: 1, division: "A" } });
+  const course4A = await db.course.findFirstOrThrow({ where: { grade: 4, division: "A" } });
+
+  const schoolEvents = [
+    { title: "Receso invernal", kind: "RECESO" as const, startDate: "2026-07-13", endDate: "2026-07-24" },
+    { title: "Día del Respeto a la Diversidad Cultural", kind: "FERIADO" as const, startDate: "2026-10-12" },
+    { title: "Acto: Día del Estudiante", kind: "ACTO" as const, startDate: "2026-09-21", time: "10:00", location: "Patio central" },
+    { title: "Reunión de padres", kind: "REUNION" as const, startDate: "2026-10-28", time: "18:30", location: "SUM" },
+    { title: "Día de la Soberanía Nacional", kind: "FERIADO" as const, startDate: "2026-11-23" },
+    { title: "Inmaculada Concepción de María", kind: "FERIADO" as const, startDate: "2026-12-08" },
+    { title: "Último día de clases", kind: "OTRO" as const, startDate: "2026-11-30" },
+  ];
+  for (const e of schoolEvents) {
+    await db.calendarEvent.create({
+      data: {
+        title: e.title,
+        kind: e.kind,
+        startDate: new Date(e.startDate),
+        endDate: "endDate" in e ? new Date(e.endDate!) : null,
+        time: "time" in e ? e.time : null,
+        location: "location" in e ? e.location : null,
+        createdById: director.id,
+      },
+    });
+  }
+  await db.calendarEvent.create({
+    data: {
+      title: "Feria de ciencias",
+      kind: "ACTO",
+      startDate: new Date("2026-10-30"),
+      time: "09:00",
+      createdById: preceptor.id,
+      courses: { create: [{ courseId: course4A.id }] },
+    },
+  });
+
+  // Salida de 1° A con algunas respuestas.
+  const trip = await db.authorizationRequest.create({
+    data: {
+      title: "Salida al Museo de Ciencias",
+      description: "Visita guiada al Museo de Ciencias. Salimos 8:30 de la escuela y volvemos 12:30. Traer vianda y agua.",
+      eventDate: new Date("2026-10-23"),
+      deadline: new Date("2026-10-20"),
+      createdById: preceptor.id,
+      courses: { create: [{ courseId: course1A.id }] },
+    },
+  });
+  await db.calendarEvent.create({
+    data: {
+      title: trip.title,
+      kind: "SALIDA",
+      startDate: trip.eventDate!,
+      createdById: preceptor.id,
+      courses: { create: [{ courseId: course1A.id }] },
+    },
+  });
+  const enrollments = await db.enrollment.findMany({
+    where: { courseId: course1A.id },
+    include: { student: { include: { guardians: true } } },
+    orderBy: { listNumber: "asc" },
+  });
+  // Responden los alumnos 2 a 5 (la familia de prueba, del alumno 1, todavía no).
+  for (const [i, e] of enrollments.slice(1, 5).entries()) {
+    const guardian = e.student.guardians[0];
+    if (!guardian) continue;
+    await db.authorizationResponse.create({
+      data: { requestId: trip.id, enrollmentId: e.id, guardianId: guardian.guardianId, authorized: i !== 2, comment: i === 0 ? "Es alérgico al maní." : null },
+    });
+  }
 }
 
 main()

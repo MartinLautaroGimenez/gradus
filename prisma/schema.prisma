@@ -88,6 +88,9 @@ model User {
   messagesSent          Message[]
   incidentsCreated      Incident[]
   incidentSignatures    IncidentSignature[]
+  eventsCreated         CalendarEvent[]
+  authorizationsCreated AuthorizationRequest[]
+  authorizationAnswers  AuthorizationResponse[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -198,9 +201,11 @@ model Course {
   preceptorId    String?
   preceptor      User?        @relation("CoursePreceptor", fields: [preceptorId], references: [id], onDelete: SetNull)
 
-  subjects      CourseSubject[]
-  enrollments   Enrollment[]
-  announcements AnnouncementCourse[]
+  subjects       CourseSubject[]
+  enrollments    Enrollment[]
+  announcements  AnnouncementCourse[]
+  events         CalendarEventCourse[]
+  authorizations AuthorizationCourse[]
 
   @@unique([academicYearId, level, grade, division])
 }
@@ -283,9 +288,10 @@ model Enrollment {
   /// Número de orden en la lista del curso.
   listNumber Int?
 
-  grades     Grade[]
-  attendance AttendanceRecord[]
-  incidents  Incident[]
+  grades                 Grade[]
+  attendance             AttendanceRecord[]
+  incidents              Incident[]
+  authorizationResponses AuthorizationResponse[]
 
   createdAt DateTime @default(now())
 
@@ -576,4 +582,98 @@ model IncidentSignature {
   signedAt   DateTime @default(now())
 
   @@id([incidentId, userId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Calendario
+// ─────────────────────────────────────────────────────────────
+
+enum EventKind {
+  EVALUACION
+  ACTO
+  FERIADO
+  RECESO
+  REUNION
+  SALIDA
+  OTRO
+}
+
+/// Evento del calendario escolar. Sin cursos = toda la escuela. Las
+/// evaluaciones con fecha de la planilla de notas se muestran solas (no se
+/// guardan acá).
+model CalendarEvent {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  kind        EventKind @default(OTRO)
+  startDate   DateTime  @db.Date
+  /// Para eventos de varios días (receso, campamento). Null = un solo día.
+  endDate     DateTime? @db.Date
+  /// Hora como texto "08:30" (opcional).
+  time        String?
+  location    String?
+  createdById String?
+  createdBy   User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  courses CalendarEventCourse[]
+
+  @@index([startDate])
+}
+
+model CalendarEventCourse {
+  eventId  String
+  event    CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, courseId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Autorizaciones
+// ─────────────────────────────────────────────────────────────
+
+/// Pedido de autorización a las familias (salida educativa, campamento,
+/// uso de imagen, etc.) para uno o más cursos.
+model AuthorizationRequest {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  /// Día de la actividad (opcional).
+  eventDate   DateTime? @db.Date
+  /// Hasta cuándo se puede responder (inclusive).
+  deadline    DateTime? @db.Date
+  createdById String?
+  createdBy   User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  courses   AuthorizationCourse[]
+  responses AuthorizationResponse[]
+}
+
+model AuthorizationCourse {
+  requestId String
+  request   AuthorizationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([requestId, courseId])
+}
+
+/// Respuesta por alumno. La da cualquiera de sus adultos responsables; se
+/// guarda quién respondió y cuándo (firma digital).
+model AuthorizationResponse {
+  id           String               @id @default(cuid())
+  requestId    String
+  request      AuthorizationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  enrollmentId String
+  enrollment   Enrollment           @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  guardianId   String?
+  guardian     User?                @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  authorized   Boolean
+  comment      String?
+  respondedAt  DateTime             @default(now())
+
+  @@unique([requestId, enrollmentId])
 }

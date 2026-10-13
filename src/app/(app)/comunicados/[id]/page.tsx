@@ -12,7 +12,7 @@ import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { courseLabel, fullName } from "@/lib/utils";
 import { acknowledgeAnnouncement, deleteAnnouncement, remindPending } from "../actions";
-import { RemindButton } from "./remind-button";
+import { RemindButton } from "@/components/remind-button";
 
 export const metadata: Metadata = { title: "Comunicado" };
 
