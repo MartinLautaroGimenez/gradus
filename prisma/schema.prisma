@@ -1,0 +1,252 @@
+// Modelo de datos de Gradus.
+// Convención: nombres de modelos y campos en inglés; textos visibles en español.
+// Cada módulo nuevo agrega sus modelos en una sección propia de este archivo.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Institución
+// ─────────────────────────────────────────────────────────────
+
+/// Datos y configuración de la escuela. Por ahora hay una sola fila.
+model School {
+  id            String  @id @default(cuid())
+  name          String
+  shortName     String
+  /// Nota mínima de aprobación (escala 1 a 10).
+  passingGrade  Decimal @default(6) @db.Decimal(4, 2)
+  /// Decimales con los que se muestran y redondean los promedios.
+  gradeDecimals Int     @default(2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────
+// Usuarios, roles y sesiones
+// ─────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPERADMIN
+  DIRECTIVO
+  ADMINISTRATIVO
+  PRECEPTOR
+  DOCENTE
+  TUTOR
+  ALUMNO
+}
+
+/// Una persona que puede iniciar sesión. Una misma persona puede tener
+/// varios roles (por ejemplo, un docente que además es tutor de un alumno).
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  dni          String?   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  roles        Role[]
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+
+  sessions Session[]
+
+  studentProfile      Student?
+  guardianOf          StudentGuardian[]
+  preceptorOfCourses  Course[]          @relation("CoursePreceptor")
+  teachingAssignments CourseSubject[]   @relation("CourseSubjectTeacher")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lastName, firstName])
+}
+
+/// Sesión de inicio de sesión. El navegador sólo guarda un token aleatorio;
+/// acá se guarda su hash SHA-256, nunca el token en claro.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Estructura académica
+// ─────────────────────────────────────────────────────────────
+
+enum Level {
+  INICIAL
+  PRIMARIO
+  SECUNDARIO
+  TERCIARIO
+}
+
+enum Shift {
+  MANANA
+  TARDE
+  VESPERTINO
+  NOCHE
+}
+
+/// Ciclo lectivo (por ejemplo, 2026).
+model AcademicYear {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  /// Sólo un ciclo debería estar activo a la vez.
+  active    Boolean  @default(false)
+
+  periods GradingPeriod[]
+  courses Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Período de calificación dentro de un ciclo (trimestre, cuatrimestre,
+/// instancias de diciembre/febrero, etc.).
+model GradingPeriod {
+  id             String       @id @default(cuid())
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  name           String
+  order          Int
+  startDate      DateTime     @db.Date
+  endDate        DateTime     @db.Date
+  /// Cuando se cierra, los docentes ya no pueden modificar notas del período.
+  closed         Boolean      @default(false)
+
+  @@unique([academicYearId, order])
+}
+
+/// Materia del plan de estudios (por ejemplo, "Matemática" de 3° año).
+model Subject {
+  id          String  @id @default(cuid())
+  name        String
+  shortName   String?
+  level       Level   @default(SECUNDARIO)
+  /// Año del plan al que pertenece (1 a 6 en secundario técnico).
+  grade       Int
+  /// Horas cátedra semanales.
+  weeklyHours Int?
+
+  courseSubjects CourseSubject[]
+
+  @@unique([level, grade, name])
+}
+
+/// Curso y división de un ciclo lectivo (por ejemplo, "3° A" de 2026).
+model Course {
+  id             String       @id @default(cuid())
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  level          Level        @default(SECUNDARIO)
+  grade          Int
+  division       String
+  shift          Shift        @default(MANANA)
+  preceptorId    String?
+  preceptor      User?        @relation("CoursePreceptor", fields: [preceptorId], references: [id], onDelete: SetNull)
+
+  subjects    CourseSubject[]
+  enrollments Enrollment[]
+
+  @@unique([academicYearId, level, grade, division])
+}
+
+/// Una materia dictada en un curso concreto, con su docente a cargo.
+model CourseSubject {
+  id        String  @id @default(cuid())
+  courseId  String
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  teacherId String?
+  teacher   User?   @relation("CourseSubjectTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+
+  @@unique([courseId, subjectId])
+  @@index([teacherId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Alumnos y familias
+// ─────────────────────────────────────────────────────────────
+
+/// Legajo del alumno. Siempre está asociado a un usuario con rol ALUMNO.
+model Student {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileNumber String    @unique
+  birthDate  DateTime? @db.Date
+  address    String?
+  notes      String?
+
+  guardians   StudentGuardian[]
+  enrollments Enrollment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum GuardianRelationship {
+  MADRE
+  PADRE
+  TUTOR_LEGAL
+  OTRO
+}
+
+/// Vínculo entre un alumno y un adulto responsable. Un tutor puede tener
+/// varios hijos y ver a todos desde la misma cuenta.
+model StudentGuardian {
+  id           String               @id @default(cuid())
+  studentId    String
+  student      Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guardianId   String
+  guardian     User                 @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  relationship GuardianRelationship
+  /// Si puede retirar al alumno y firmar autorizaciones.
+  isPrimary    Boolean              @default(false)
+
+  @@unique([studentId, guardianId])
+  @@index([guardianId])
+}
+
+enum EnrollmentStatus {
+  ACTIVA
+  PASE
+  BAJA
+  EGRESADO
+}
+
+/// Matrícula de un alumno en un curso para un ciclo lectivo.
+model Enrollment {
+  id         String           @id @default(cuid())
+  studentId  String
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status     EnrollmentStatus @default(ACTIVA)
+  /// Número de orden en la lista del curso.
+  listNumber Int?
+
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, courseId])
+  @@index([courseId])
+}
