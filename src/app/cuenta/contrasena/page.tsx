@@ -24,7 +24,7 @@ export default async function ContrasenaPage() {
             <p className="text-sm text-muted">Es tu primer ingreso. Elegí una contraseña nueva para continuar.</p>
           )}
         </div>
-        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+        <div className="rounded-2xl bg-surface p-6 shadow-card">
           <PasswordForm firstTime={firstTime} />
         </div>
         <div className="mt-6 text-center text-sm">

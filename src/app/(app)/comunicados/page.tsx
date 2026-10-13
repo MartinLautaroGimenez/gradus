@@ -44,8 +44,8 @@ export default async function ComunicadosPage({ searchParams }: { searchParams: 
 
   const tab = (active: boolean) =>
     cn(
-      "rounded-lg px-3 py-1.5 text-sm font-medium",
-      active ? "bg-primary text-primary-foreground" : "text-muted hover:bg-surface-muted hover:text-foreground",
+      "rounded-full px-3.5 py-1.5 text-[14px] font-medium transition-colors",
+      active ? "bg-surface text-foreground shadow-card" : "text-muted hover:text-foreground",
     );
 
   return (
@@ -55,11 +55,11 @@ export default async function ComunicadosPage({ searchParams }: { searchParams: 
         actions={canSend && <LinkButton href="/comunicados/nuevo">Nuevo comunicado</LinkButton>}
       />
       {canSend && (
-        <nav className="flex gap-1">
-          <Link href="/comunicados" className={tab(!sent)}>
+        <nav className="flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-full bg-black/[0.05] p-1 dark:bg-white/[0.08]">
+          <Link href="/comunicados" aria-current={!sent ? "page" : undefined} className={tab(!sent)}>
             Recibidos
           </Link>
-          <Link href="/comunicados?vista=enviados" className={tab(sent)}>
+          <Link href="/comunicados?vista=enviados" aria-current={sent ? "page" : undefined} className={tab(sent)}>
             Enviados
           </Link>
         </nav>

@@ -70,7 +70,7 @@ export default async function ConvivenciaPage({ searchParams }: { searchParams: 
 
       {courses.length > 1 && (
         <form className="flex flex-wrap gap-2">
-          <select name="curso" defaultValue={curso ?? ""} className="h-9 rounded-lg border border-border bg-surface px-2 text-sm" aria-label="Curso">
+          <select name="curso" defaultValue={curso ?? ""} className="h-9 rounded-full bg-surface px-3.5 text-[14px] shadow-card" aria-label="Curso">
             <option value="">Todos los cursos</option>
             {courses.map((c) => (
               <option key={c.id} value={c.id}>
@@ -78,7 +78,7 @@ export default async function ConvivenciaPage({ searchParams }: { searchParams: 
               </option>
             ))}
           </select>
-          <select name="tipo" defaultValue={tipo ?? ""} className="h-9 rounded-lg border border-border bg-surface px-2 text-sm" aria-label="Tipo">
+          <select name="tipo" defaultValue={tipo ?? ""} className="h-9 rounded-full bg-surface px-3.5 text-[14px] shadow-card" aria-label="Tipo">
             <option value="">Todos los tipos</option>
             {Object.entries(INCIDENT_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
@@ -86,7 +86,7 @@ export default async function ConvivenciaPage({ searchParams }: { searchParams: 
               </option>
             ))}
           </select>
-          <button type="submit" className="h-9 rounded-lg border border-border bg-surface px-3 text-sm hover:bg-surface-muted">
+          <button type="submit" className="h-9 rounded-full bg-surface px-4 text-[14px] font-medium text-primary shadow-card hover:bg-surface-muted">
             Filtrar
           </button>
         </form>

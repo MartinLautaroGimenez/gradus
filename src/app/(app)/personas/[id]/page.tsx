@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { X } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -78,6 +78,19 @@ export default async function PersonaPage({
         }
       />
 
+      {student && (
+        <Link
+          href={`/alumnos/${student.id}`}
+          className="flex items-center justify-between rounded-2xl bg-surface px-5 py-4 shadow-card hover:bg-surface-muted/60"
+        >
+          <span>
+            <span className="block font-medium">Ficha del alumno</span>
+            <span className="block text-[13px] text-muted">Notas, asistencia, convivencia y familia en un solo lugar</span>
+          </span>
+          <ChevronRight className="size-5 text-muted" aria-hidden />
+        </Link>
+      )}
+
       {creado && (
         <p role="status" className="rounded-lg bg-success-soft px-3 py-2 text-sm text-success">
           Cuenta creada. Puede ingresar con su DNI como usuario y como contraseña; se le pedirá cambiarla.
@@ -153,7 +166,7 @@ export default async function PersonaPage({
               <CardDescription>Adultos responsables que ven la información de este alumno.</CardDescription>
             </div>
             {student.guardians.length > 0 && (
-              <ul className="divide-y divide-border rounded-lg border border-border">
+              <ul className="divide-y divide-border rounded-2xl bg-surface-muted">
                 {student.guardians.map((link) => (
                   <li key={link.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
                     <div className="min-w-0">

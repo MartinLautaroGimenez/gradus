@@ -113,8 +113,8 @@ export default async function PlanillaPage({
 
   const tabClass = (active: boolean) =>
     cn(
-      "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap",
-      active ? "bg-primary text-primary-foreground" : "text-muted hover:bg-surface-muted hover:text-foreground",
+      "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[14px] font-medium whitespace-nowrap transition-colors",
+      active ? "bg-surface text-foreground shadow-card" : "text-muted hover:text-foreground",
     );
 
   return (
@@ -127,21 +127,21 @@ export default async function PlanillaPage({
           <a
             href={`/notas/${sheet.id}/exportar`}
             download
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-border bg-surface px-4 text-sm font-medium hover:bg-surface-muted"
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-surface px-5 text-[15px] font-medium text-primary shadow-card hover:bg-surface-muted"
           >
             <Download className="size-4" aria-hidden /> Descargar Excel
           </a>
         }
       />
 
-      <nav className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1" aria-label="Períodos">
+      <nav className="flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-full bg-black/[0.05] p-1 dark:bg-white/[0.08]" aria-label="Períodos">
         {periods.map((p) => (
-          <Link key={p.id} href={`/notas/${sheet.id}?periodo=${p.id}`} className={tabClass(p.id === period?.id)}>
+          <Link key={p.id} href={`/notas/${sheet.id}?periodo=${p.id}`} aria-current={p.id === period?.id ? "page" : undefined} className={tabClass(p.id === period?.id)}>
             {p.closed && <Lock className="size-3.5" aria-label="Cerrado" />}
             {p.name}
           </Link>
         ))}
-        <Link href={`/notas/${sheet.id}?periodo=resumen`} className={tabClass(showSummary)}>
+        <Link href={`/notas/${sheet.id}?periodo=resumen`} aria-current={showSummary ? "page" : undefined} className={tabClass(showSummary)}>
           Resumen anual
         </Link>
       </nav>

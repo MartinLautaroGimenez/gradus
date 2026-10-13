@@ -67,8 +67,8 @@ export default async function AsistenciaCursoPage({
   const totals = await totalsByEnrollment(enrollmentIds, settings);
   const tabClass = (active: boolean) =>
     cn(
-      "rounded-lg px-3 py-1.5 text-sm font-medium",
-      active ? "bg-primary text-primary-foreground" : "text-muted hover:bg-surface-muted hover:text-foreground",
+      "rounded-full px-3.5 py-1.5 text-[14px] font-medium transition-colors",
+      active ? "bg-surface text-foreground shadow-card" : "text-muted hover:text-foreground",
     );
 
   const header = (
@@ -78,11 +78,11 @@ export default async function AsistenciaCursoPage({
         description={`Ciclo ${course.academicYear.year} · Tope: ${settings.maxAbsences} inasistencias`}
         back={{ href: "/asistencia", label: "Asistencia" }}
       />
-      <nav className="mb-4 flex gap-1" aria-label="Vista">
-        <Link href={`/asistencia/${course.id}`} className={tabClass(!mes)}>
+      <nav className="mb-4 flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-full bg-black/[0.05] p-1 dark:bg-white/[0.08]" aria-label="Vista">
+        <Link href={`/asistencia/${course.id}`} aria-current={!mes ? "page" : undefined} className={tabClass(!mes)}>
           Lista del día
         </Link>
-        <Link href={`/asistencia/${course.id}?mes=${(fecha ?? todayInMendoza()).slice(0, 7)}`} className={tabClass(!!mes)}>
+        <Link href={`/asistencia/${course.id}?mes=${(fecha ?? todayInMendoza()).slice(0, 7)}`} aria-current={!!mes ? "page" : undefined} className={tabClass(!!mes)}>
           Planilla mensual
         </Link>
       </nav>
@@ -124,12 +124,12 @@ export default async function AsistenciaCursoPage({
           <a
             href={`/asistencia/${course.id}/exportar?mes=${mes}`}
             download
-            className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium hover:bg-surface-muted"
+            className="inline-flex h-9 items-center gap-2 rounded-full bg-surface px-4 text-[14px] font-medium text-primary shadow-card hover:bg-surface-muted"
           >
             <Download className="size-4" aria-hidden /> Descargar Excel
           </a>
         </div>
-        <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+        <div className="overflow-x-auto rounded-2xl bg-surface shadow-card">
           <table className="border-separate border-spacing-0 text-xs">
             <thead>
               <tr className="bg-surface-muted text-muted">
@@ -238,10 +238,10 @@ export default async function AsistenciaCursoPage({
             type="date"
             name="fecha"
             defaultValue={date}
-            className="h-9 rounded-lg border border-border bg-surface px-2 text-sm"
+            className="h-9 rounded-full bg-surface px-3.5 text-[14px] shadow-card"
             aria-label="Fecha"
           />
-          <button type="submit" className="h-9 rounded-lg border border-border bg-surface px-3 text-sm hover:bg-surface-muted">
+          <button type="submit" className="h-9 rounded-full bg-surface px-4 text-[14px] font-medium text-primary shadow-card hover:bg-surface-muted">
             Ir
           </button>
         </form>
@@ -266,7 +266,7 @@ export default async function AsistenciaCursoPage({
           Esa fecha está fuera del ciclo lectivo {course.academicYear.year}.
         </p>
       ) : course.enrollments.length === 0 ? (
-        <p className="rounded-xl border border-border bg-surface p-5 text-sm text-muted">El curso no tiene alumnos.</p>
+        <p className="rounded-2xl bg-surface shadow-card p-5 text-sm text-muted">El curso no tiene alumnos.</p>
       ) : (
         <>
           {isWeekend(date) && (

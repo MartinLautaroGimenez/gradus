@@ -17,7 +17,7 @@ export function SignForm({ action }: { action: (prev: FormState, formData: FormD
         name="comment"
         rows={3}
         maxLength={2000}
-        className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-2 focus:outline-primary-soft"
+        className="w-full rounded-xl border border-transparent bg-surface-muted px-3.5 py-2.5 text-[15px] focus:border-primary focus:bg-surface focus:outline-none focus:ring-4 focus:ring-primary/15"
       />
       <FormMessage state={state} />
       <div>

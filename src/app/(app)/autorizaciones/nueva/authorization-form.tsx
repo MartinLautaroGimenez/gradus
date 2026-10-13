@@ -22,7 +22,7 @@ export function AuthorizationForm({ courses }: { courses: { id: string; label: s
           name="description"
           rows={5}
           required
-          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-2 focus:outline-primary-soft"
+          className="w-full rounded-xl border border-transparent bg-surface-muted px-3.5 py-2.5 text-[15px] focus:border-primary focus:bg-surface focus:outline-none focus:ring-4 focus:ring-primary/15"
         />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -39,7 +39,7 @@ export function AuthorizationForm({ courses }: { courses: { id: string; label: s
           {courses.map((c) => (
             <label
               key={c.id}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-primary-soft"
+              className="flex cursor-pointer items-center gap-2 rounded-full bg-surface-muted px-4 py-2 text-[14px] has-checked:bg-primary-soft has-checked:text-primary"
             >
               <input type="checkbox" name="courseIds" value={c.id} className="size-4" />
               {c.label}

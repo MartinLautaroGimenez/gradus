@@ -57,7 +57,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
           <nav className="flex flex-wrap gap-1.5" aria-label="Filtrar por curso">
             <Link
               href={`?mes=${month}`}
-              className={cn("rounded-full px-3 py-1 text-sm", !selected ? "bg-primary text-primary-foreground" : "border border-border bg-surface hover:bg-surface-muted")}
+              className={cn("rounded-full px-3 py-1 text-sm", !selected ? "bg-foreground text-background" : "bg-surface shadow-card hover:bg-surface-muted")}
             >
               Todos
             </Link>
@@ -65,7 +65,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
               <Link
                 key={c.id}
                 href={`?mes=${month}&curso=${c.id}`}
-                className={cn("rounded-full px-3 py-1 text-sm", selected?.id === c.id ? "bg-primary text-primary-foreground" : "border border-border bg-surface hover:bg-surface-muted")}
+                className={cn("rounded-full px-3 py-1 text-sm", selected?.id === c.id ? "bg-foreground text-background" : "bg-surface shadow-card hover:bg-surface-muted")}
               >
                 {c.label}
                 {c.who && <span className="opacity-75"> · {c.who}</span>}
@@ -76,7 +76,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
       </div>
 
       {/* Grilla del mes (en pantallas medianas en adelante) */}
-      <div className="hidden overflow-hidden rounded-xl border border-border bg-surface md:block">
+      <div className="hidden overflow-hidden rounded-2xl bg-surface shadow-card md:block">
         <div className="grid grid-cols-7 border-b border-border bg-surface-muted text-center text-xs font-semibold text-muted">
           {WEEKDAYS.map((d) => (
             <div key={d} className="py-2">
@@ -135,7 +135,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
 
       {/* Agenda del mes (lista) */}
       <section className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Agenda del mes</h2>
+        <h2 className="text-[20px] font-semibold tracking-tight">Agenda del mes</h2>
         {monthItems.length === 0 ? (
           <Card className="text-sm text-muted">No hay eventos este mes.</Card>
         ) : (
@@ -146,7 +146,7 @@ export default async function CalendarioPage({ searchParams }: { searchParams: P
                   <Link href={item.href} className="flex items-start gap-3 px-4 py-3 hover:bg-surface-muted">
                     <span className={cn("w-12 shrink-0 rounded-lg py-1 text-center", item.start === today ? "bg-primary text-primary-foreground" : "bg-surface-muted")}>
                       <span className="block text-lg leading-tight font-semibold">{Number(item.start.slice(8))}</span>
-                      <span className="block text-[10px] uppercase">
+                      <span className="block text-[11px]">
                         {new Date(`${item.start}T12:00:00Z`).toLocaleDateString("es-AR", { weekday: "short", timeZone: "UTC" })}
                       </span>
                     </span>

@@ -70,7 +70,7 @@ export default async function EventoPage({ params, searchParams }: { params: Pro
         back={{ href: `/calendario?mes=${iso(event.startDate).slice(0, 7)}`, label: "Calendario" }}
         actions={
           canEdit && (
-            <a href={`/calendario/${id}?editar=1`} className="inline-flex h-10 items-center rounded-lg border border-border bg-surface px-4 text-sm font-medium hover:bg-surface-muted">
+            <a href={`/calendario/${id}?editar=1`} className="inline-flex h-10 items-center rounded-full bg-surface px-5 text-[15px] font-medium text-primary shadow-card hover:bg-surface-muted">
               Editar
             </a>
           )

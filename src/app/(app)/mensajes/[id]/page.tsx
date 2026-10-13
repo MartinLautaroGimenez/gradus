@@ -44,7 +44,7 @@ export default async function ConversacionPage({ params }: { params: Promise<{ i
 
   let lastDay = "";
   return (
-    <div className="grid h-[calc(100dvh-7rem)] overflow-hidden rounded-xl border border-border bg-surface md:h-[calc(100dvh-4rem)] grid-cols-1 lg:grid-cols-[22rem_1fr]">
+    <div className="grid h-[calc(100dvh-7rem)] overflow-hidden rounded-2xl bg-surface shadow-card md:h-[calc(100dvh-4rem)] grid-cols-1 lg:grid-cols-[22rem_1fr]">
       <div className="hidden overflow-y-auto border-r border-border lg:block">
         <ConversationList userId={user.id} activeId={id} />
       </div>

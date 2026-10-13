@@ -31,7 +31,7 @@ export function ColumnChart({
             />
             <span
               role="tooltip"
-              className="pointer-events-none absolute bottom-full z-20 mb-1 hidden rounded-lg border border-border bg-surface px-3 py-2 text-xs whitespace-nowrap shadow-lg group-hover:block group-focus-visible:block"
+              className="pointer-events-none absolute bottom-full z-20 mb-1 hidden rounded-xl bg-surface px-3 py-2 text-xs shadow-float whitespace-nowrap shadow-lg group-hover:block group-focus-visible:block"
             >
               <span className="block font-semibold">Promedio {item.label.toLowerCase()}</span>
               <span className="block text-muted">

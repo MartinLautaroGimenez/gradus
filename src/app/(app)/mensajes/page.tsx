@@ -13,7 +13,7 @@ export default async function MensajesPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title="Mensajes" actions={<LinkButton href="/mensajes/nuevo">Nuevo mensaje</LinkButton>} />
-      <div className="grid overflow-hidden rounded-xl border border-border bg-surface lg:grid-cols-[22rem_1fr]">
+      <div className="grid overflow-hidden rounded-2xl bg-surface shadow-card lg:grid-cols-[22rem_1fr]">
         <div className="lg:border-r lg:border-border">
           <ConversationList userId={user.id} />
         </div>

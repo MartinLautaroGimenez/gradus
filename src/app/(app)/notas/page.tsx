@@ -101,8 +101,8 @@ export default async function NotasPage({ searchParams }: { searchParams: Promis
                   href={`/notas?alumno=${c.studentId}`}
                   className={
                     c.studentId === child?.studentId
-                      ? "rounded-full bg-primary px-3 py-1 text-sm font-medium text-primary-foreground"
-                      : "rounded-full border border-border bg-surface px-3 py-1 text-sm hover:bg-surface-muted"
+                      ? "rounded-full bg-foreground px-3.5 py-1.5 text-[14px] font-medium text-background"
+                      : "rounded-full bg-surface px-3.5 py-1.5 text-[14px] shadow-card hover:bg-surface-muted"
                   }
                 >
                   {c.student.user.firstName}

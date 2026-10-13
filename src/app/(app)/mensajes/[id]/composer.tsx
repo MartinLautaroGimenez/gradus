@@ -35,7 +35,7 @@ export function Composer({ action, placeholder = "Escribí un mensaje…" }: { a
             formRef.current?.requestSubmit();
           }
         }}
-        className="max-h-40 min-h-10 flex-1 resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-2 focus:outline-primary-soft"
+        className="max-h-40 min-h-10 flex-1 resize-none rounded-[20px] border border-transparent bg-surface-muted px-4 py-2.5 text-[15px] focus:border-primary focus:bg-surface focus:outline-none"
       />
       <Button type="submit" disabled={pending} aria-label="Enviar" className="px-3">
         <SendHorizontal className="size-4" aria-hidden />

@@ -254,12 +254,30 @@ aviso por conversación (no uno por mensaje) mientras no se lea.
   descargable en CSV para Excel.
 - Los promedios son "hasta hoy": usan los períodos con notas cargadas.
 
+## Ficha del alumno
+
+Dirección, administración, el preceptor del curso y sus docentes pueden tocar
+el nombre de un alumno (en el curso, en reportes o en las alertas de
+asistencia) y ver todo en un lugar: promedio general, materias por debajo de
+la nota de aprobación, inasistencias y registros de convivencia, con pestañas
+de Notas, Asistencia, Convivencia y Familia (contacto, llamado, email y
+mensaje). En el Inicio de la dirección y de cada preceptor aparecen los
+"Alumnos para seguir".
+
+## Diseño
+
+Sobrio, al estilo de Apple y Google: fondo gris claro, tarjetas blancas sin
+bordes, títulos grandes, un solo color de acento y listas agrupadas. En el
+celular hay una barra de pestañas abajo (Inicio, Notas, Asistencia, Mensajes y
+Más), pensada para que las familias lo usen con una mano.
+
 ## Inicio
 
 Cada persona ve al entrar lo que le importa: pendientes (comunicados para
 notificarse, registros para firmar, autorizaciones sin responder), eventos de
-las próximas dos semanas y un resumen según su rol (cursos, materias, hijos
-con sus inasistencias).
+las próximas dos semanas y un resumen según su rol. Las familias ven una
+tarjeta por hijo con su promedio, materias abajo y faltas, y accesos directos
+a notas y asistencia.
 
 ## Cuentas y contraseñas
 

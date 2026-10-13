@@ -8,6 +8,7 @@ import { courseLabel, fullName } from "@/lib/utils";
 
 export type StudentRow = {
   enrollmentId: string;
+  studentId: string;
   userId: string;
   name: string;
   course: string;
@@ -87,6 +88,7 @@ export async function loadSchoolReport(courseIds?: string[]) {
       const total = absences.get(e.id)!.total;
       students.push({
         enrollmentId: e.id,
+        studentId: e.studentId,
         userId: e.student.userId,
         name: fullName(e.student.user),
         course: courseLabel(course),

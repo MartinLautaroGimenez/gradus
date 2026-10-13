@@ -145,10 +145,10 @@ export function AttendanceSheet({
         {!taken && <Badge tone="warning">Todavía no se tomó lista este día</Badge>}
       </div>
 
-      <div ref={tableRef} className="overflow-x-auto rounded-xl border border-border bg-surface">
+      <div ref={tableRef} className="overflow-x-auto rounded-2xl bg-surface shadow-card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-surface-muted text-left text-xs font-semibold uppercase tracking-wide text-muted">
+            <tr className="text-left text-[13px] font-medium text-muted">
               <th className="w-10 px-3 py-2">N°</th>
               <th className="px-3 py-2">Alumno</th>
               <th className="px-3 py-2">Asistencia</th>
@@ -231,7 +231,7 @@ export function AttendanceSheet({
                           onChange={(e) => update(index, { note: e.target.value })}
                           placeholder="Motivo (opcional)"
                           maxLength={200}
-                          className="h-8 w-full min-w-32 rounded-md border border-border bg-surface px-2 text-xs"
+                          className="h-8 w-full min-w-32 rounded-lg border border-transparent bg-surface-muted px-2.5 text-[13px] focus:border-primary focus:outline-none"
                         />
                       </div>
                     )}

@@ -16,8 +16,8 @@ export default async function ImportarPage({ searchParams }: { searchParams: Pro
   const kind = (await searchParams).tipo === "personal" ? "personal" : "alumnos";
   const tab = (active: boolean) =>
     cn(
-      "rounded-lg px-3 py-1.5 text-sm font-medium",
-      active ? "bg-primary text-primary-foreground" : "text-muted hover:bg-surface-muted hover:text-foreground",
+      "rounded-full px-3.5 py-1.5 text-[14px] font-medium transition-colors",
+      active ? "bg-surface text-foreground shadow-card" : "text-muted hover:text-foreground",
     );
 
   return (
@@ -27,11 +27,11 @@ export default async function ImportarPage({ searchParams }: { searchParams: Pro
         description="Cargá personas desde una planilla de Excel (.xlsx) o CSV."
         back={{ href: "/personas", label: "Personas" }}
       />
-      <nav className="-mt-2 flex gap-1" aria-label="Qué importar">
-        <Link href="/personas/importar" className={tab(kind === "alumnos")}>
+      <nav className="-mt-2 flex w-fit max-w-full gap-0.5 overflow-x-auto rounded-full bg-black/[0.05] p-1 dark:bg-white/[0.08]" aria-label="Qué importar">
+        <Link href="/personas/importar" aria-current={kind === "alumnos" ? "page" : undefined} className={tab(kind === "alumnos")}>
           Alumnos y familias
         </Link>
-        <Link href="/personas/importar?tipo=personal" className={tab(kind === "personal")}>
+        <Link href="/personas/importar?tipo=personal" aria-current={kind === "personal" ? "page" : undefined} className={tab(kind === "personal")}>
           Personal
         </Link>
       </nav>

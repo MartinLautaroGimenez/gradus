@@ -44,7 +44,7 @@ export default async function NuevaPage({ searchParams }: { searchParams: Promis
             href={`/convivencia/nueva?curso=${c.id}`}
             className={cn(
               "rounded-full px-3 py-1 text-sm",
-              c.id === course?.id ? "bg-primary font-medium text-primary-foreground" : "border border-border bg-surface hover:bg-surface-muted",
+              c.id === course?.id ? "bg-foreground font-medium text-background" : "bg-surface shadow-card hover:bg-surface-muted",
             )}
           >
             {courseLabel(c)}

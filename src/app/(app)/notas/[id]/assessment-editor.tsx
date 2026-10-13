@@ -88,7 +88,7 @@ export function AssessmentEditor({
       ref={dialogRef}
       onClose={onClose}
       onClick={(event) => event.target === dialogRef.current && onClose()}
-      className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-2xl border border-border bg-surface p-0 text-left font-normal text-foreground shadow-xl backdrop:bg-black/40"
+      className="m-auto w-[min(26rem,calc(100vw-2rem))] rounded-3xl bg-surface p-0 text-left font-normal text-foreground shadow-float backdrop:bg-black/40"
     >
       <form onSubmit={save} className="flex flex-col gap-4 p-5">
         <div className="flex items-center justify-between">

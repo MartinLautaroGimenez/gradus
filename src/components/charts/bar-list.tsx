@@ -68,7 +68,7 @@ export function BarList({
               {item.details && (
                 <span
                   role="tooltip"
-                  className="pointer-events-none absolute top-full left-0 z-20 mt-1 hidden min-w-48 rounded-lg border border-border bg-surface px-3 py-2 text-xs shadow-lg group-hover:block group-focus-visible:block sm:left-[10.75rem]"
+                  className="pointer-events-none absolute top-full left-0 z-20 mt-1 hidden min-w-48 rounded-xl bg-surface px-3 py-2 text-xs shadow-float shadow-lg group-hover:block group-focus-visible:block sm:left-[10.75rem]"
                 >
                   <span className="mb-0.5 block font-semibold">{item.label}</span>
                   {item.details.map((d) => (

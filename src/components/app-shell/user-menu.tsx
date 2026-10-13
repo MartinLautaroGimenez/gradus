@@ -7,31 +7,31 @@ import { initials } from "@/lib/utils";
 
 export function UserMenu({ user }: { user: CurrentUser }) {
   return (
-    <div className="flex items-center gap-3 border-t border-border pt-4">
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary">
+    <div className="flex items-center gap-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-[13px] font-semibold text-white">
         {initials(user)}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">
+        <p className="truncate text-[14px] font-medium">
           {user.firstName} {user.lastName}
         </p>
-        <p className="truncate text-xs text-muted">{user.roles.map((role) => ROLE_LABELS[role]).join(" · ")}</p>
+        <p className="truncate text-[12px] text-muted">{user.roles.map((role) => ROLE_LABELS[role]).join(" · ")}</p>
       </div>
       <Link
         href="/cuenta/contrasena"
         title="Cambiar contraseña"
-        className="rounded-lg p-2 text-muted hover:bg-surface-muted hover:text-foreground"
+        className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface-muted hover:text-foreground"
       >
-        <KeyRound className="size-4" aria-hidden />
+        <KeyRound className="size-4" strokeWidth={1.75} aria-hidden />
         <span className="sr-only">Cambiar contraseña</span>
       </Link>
       <form action={logout}>
         <button
           type="submit"
           title="Cerrar sesión"
-          className="rounded-lg p-2 text-muted hover:bg-surface-muted hover:text-foreground"
+          className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface-muted hover:text-foreground"
         >
-          <LogOut className="size-4" aria-hidden />
+          <LogOut className="size-4" strokeWidth={1.75} aria-hidden />
           <span className="sr-only">Cerrar sesión</span>
         </button>
       </form>

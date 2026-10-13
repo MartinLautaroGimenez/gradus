@@ -9,7 +9,12 @@ export function middleware(request: NextRequest) {
   if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) return NextResponse.next();
 
   if (!request.cookies.has("gradus_session")) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    // Se clona nextUrl (que respeta el host que usa el navegador) en vez de
+    // armar la URL con request.url, que puede ser el host interno (0.0.0.0).
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.search = "";
+    return NextResponse.redirect(url);
   }
   return NextResponse.next();
 }

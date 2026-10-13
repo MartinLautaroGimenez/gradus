@@ -12,7 +12,7 @@ import { useFormAction } from "@/lib/use-form-action";
 import type { FormState } from "@/lib/validation";
 
 const chip =
-  "flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-primary-soft";
+  "flex cursor-pointer items-center gap-2 rounded-full bg-surface-muted px-4 py-2 text-[14px] has-checked:bg-primary-soft has-checked:text-primary";
 
 export type EventValues = {
   title: string;
@@ -88,7 +88,7 @@ export function EventForm({
           name="description"
           rows={3}
           defaultValue={event?.description ?? ""}
-          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-2 focus:outline-primary-soft"
+          className="w-full rounded-xl border border-transparent bg-surface-muted px-3.5 py-2.5 text-[15px] focus:border-primary focus:bg-surface focus:outline-none focus:ring-4 focus:ring-primary/15"
         />
       </Field>
       <fieldset className="flex flex-col gap-2">

@@ -40,7 +40,7 @@ const ERRORS: Record<string, string> = {
 
 function RemoveButton({ label }: { label: string }) {
   return (
-    <SubmitButton variant="ghost" className="h-8 px-2" pendingText="…" confirm={`¿${label}?`} title={label}>
+    <SubmitButton variant="ghost" className="h-8 px-2 text-muted hover:bg-danger-soft hover:text-danger" pendingText="…" confirm={`¿${label}?`} title={label}>
       <X className="size-4" aria-hidden />
       <span className="sr-only">{label}</span>
     </SubmitButton>
@@ -145,13 +145,9 @@ export default async function CursoPage({
                   <tr key={enrollment.id} className={enrollment.status === "ACTIVA" ? "" : "text-muted"}>
                     <Td className="tabular-nums text-muted">{enrollment.listNumber ?? "—"}</Td>
                     <Td className="font-medium">
-                      {canManage ? (
-                        <Link href={`/personas/${enrollment.student.userId}`} className="hover:text-primary hover:underline">
-                          {name}
-                        </Link>
-                      ) : (
-                        name
-                      )}
+                      <Link href={`/alumnos/${enrollment.studentId}`} className="hover:text-primary">
+                        {name}
+                      </Link>
                     </Td>
                     <Td className="hidden tabular-nums sm:table-cell">{formatDni(enrollment.student.user.dni)}</Td>
                     <Td>

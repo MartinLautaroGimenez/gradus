@@ -156,7 +156,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <form className="flex gap-2">
-              <select name="curso" defaultValue={curso ?? ""} className="h-9 rounded-lg border border-border bg-surface px-2 text-sm" aria-label="Curso">
+              <select name="curso" defaultValue={curso ?? ""} className="h-9 rounded-full bg-surface px-3.5 text-[14px] shadow-card" aria-label="Curso">
                 <option value="">Todos los cursos</option>
                 {report.courses.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -164,14 +164,14 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
                   </option>
                 ))}
               </select>
-              <button type="submit" className="h-9 rounded-lg border border-border bg-surface px-3 text-sm hover:bg-surface-muted">
+              <button type="submit" className="h-9 rounded-full bg-surface px-4 text-[14px] font-medium text-primary shadow-card hover:bg-surface-muted">
                 Filtrar
               </button>
             </form>
             <a
               href={`/reportes/exportar${curso ? `?curso=${curso}` : ""}`}
               download
-              className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium hover:bg-surface-muted"
+              className="inline-flex h-9 items-center gap-2 rounded-full bg-surface px-4 text-[14px] font-medium text-primary shadow-card hover:bg-surface-muted"
             >
               <Download className="size-4" aria-hidden /> Excel (CSV)
             </a>
@@ -197,13 +197,9 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
                 .map((s) => (
                   <tr key={s.enrollmentId}>
                     <Td className="font-medium">
-                      {limited ? (
-                        s.name
-                      ) : (
-                        <Link href={`/personas/${s.userId}`} className="hover:text-primary hover:underline">
-                          {s.name}
-                        </Link>
-                      )}
+                      <Link href={`/alumnos/${s.studentId}`} className="hover:text-primary">
+                        {s.name}
+                      </Link>
                     </Td>
                     <Td>{s.course}</Td>
                     <Td className="text-right tabular-nums">{grade(s.average)}</Td>

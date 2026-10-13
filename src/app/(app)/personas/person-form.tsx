@@ -77,7 +77,7 @@ export function PersonForm({
           {assignableRoles.map((role) => (
             <label
               key={role}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm has-checked:border-primary has-checked:bg-primary-soft has-disabled:cursor-default has-disabled:opacity-70"
+              className="flex cursor-pointer items-center gap-2 rounded-full bg-surface-muted px-4 py-2 text-[14px] has-checked:bg-primary-soft has-checked:text-primary has-disabled:cursor-default has-disabled:opacity-70"
             >
               <input
                 type="checkbox"
@@ -97,7 +97,7 @@ export function PersonForm({
       </fieldset>
 
       {isNew && roles.includes("ALUMNO") && (
-        <fieldset className="grid gap-4 rounded-xl border border-border p-4 sm:grid-cols-3">
+        <fieldset className="grid gap-4 rounded-2xl bg-surface-muted p-4 sm:grid-cols-3">
           <legend className="px-1 text-sm font-medium">Datos del alumno</legend>
           <Field label="Legajo" htmlFor="fileNumber" error={errors.fileNumber} hint="Si queda vacío se usa el DNI">
             <Input id="fileNumber" name="fileNumber" />

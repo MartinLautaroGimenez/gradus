@@ -6,7 +6,7 @@ import { useFormAction } from "@/lib/use-form-action";
 import type { FormState } from "@/lib/validation";
 
 const option =
-  "flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border px-4 py-3 text-sm font-medium has-checked:border-primary has-checked:bg-primary-soft has-checked:text-primary";
+  "flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl bg-surface-muted px-4 py-3.5 text-[15px] font-medium ring-2 ring-transparent has-checked:bg-primary-soft has-checked:text-primary has-checked:ring-primary";
 
 export function ResponseForm({
   action,
@@ -40,7 +40,7 @@ export function ResponseForm({
         defaultValue={current?.comment ?? ""}
         placeholder="Comentario (opcional): alergias, quién lo retira, etc."
         aria-label="Comentario"
-        className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-2 focus:outline-primary-soft"
+        className="w-full rounded-xl border border-transparent bg-surface-muted px-3.5 py-2.5 text-[15px] focus:border-primary focus:bg-surface focus:outline-none focus:ring-4 focus:ring-primary/15"
       />
       <FormMessage state={state} />
       <div>

@@ -37,7 +37,7 @@ export function StudentFileForm({
           name="notes"
           defaultValue={student.notes ?? ""}
           rows={3}
-          className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-2 focus:outline-primary-soft"
+          className="w-full rounded-xl border border-transparent bg-surface-muted px-3.5 py-2.5 text-[15px] focus:border-primary focus:bg-surface focus:outline-none focus:ring-4 focus:ring-primary/15"
         />
       </Field>
       <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
@@ -73,7 +73,7 @@ export function AddGuardianForm({ action }: { action: Action }) {
           </Label>
         </div>
       </div>
-      <details className="rounded-lg border border-border p-3" open={!!errors.firstName}>
+      <details className="rounded-2xl bg-surface-muted p-4" open={!!errors.firstName}>
         <summary className="cursor-pointer text-sm text-muted">
           Si todavía no está registrado, completá sus datos para crear su cuenta
         </summary>

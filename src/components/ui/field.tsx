@@ -22,11 +22,7 @@ export function Field({
     <div className={cn("flex flex-col gap-1.5", className)}>
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
-      {message ? (
-        <p className="text-xs text-danger">{message}</p>
-      ) : hint ? (
-        <p className="text-xs text-muted">{hint}</p>
-      ) : null}
+      {message ? <p className="text-[13px] text-danger">{message}</p> : hint ? <p className="text-[13px] text-muted">{hint}</p> : null}
     </div>
   );
 }

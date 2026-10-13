@@ -28,7 +28,7 @@ export function ContactPicker({ contacts, selectedId }: { contacts: Contact[]; s
         aria-label="Buscar contacto"
         autoFocus
       />
-      <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto rounded-xl border border-border bg-surface">
+      <ul className="max-h-[60vh] divide-y divide-border overflow-y-auto rounded-2xl bg-surface shadow-card">
         {shown.length === 0 && <li className="p-4 text-sm text-muted">No hay contactos que coincidan.</li>}
         {shown.slice(0, 200).map((c) => (
           <li key={c.id}>

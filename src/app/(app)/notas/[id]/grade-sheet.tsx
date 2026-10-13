@@ -440,7 +440,7 @@ export function GradeSheet(props: Props) {
 
   if (rows === 0) {
     return (
-      <div className="rounded-xl border border-border bg-surface p-5 text-sm text-muted">
+      <div className="rounded-2xl bg-surface shadow-card p-5 text-sm text-muted">
         No hay alumnos para esta planilla.
       </div>
     );
@@ -479,7 +479,7 @@ export function GradeSheet(props: Props) {
         aria-label="Planilla de notas"
         aria-rowcount={rows + 1}
         onKeyDown={onGridKeyDown}
-        className="relative max-h-[70vh] overflow-auto rounded-xl border border-border bg-surface outline-none focus-visible:ring-2 focus-visible:ring-primary-soft"
+        className="relative max-h-[70vh] w-fit max-w-full overflow-auto rounded-2xl bg-surface shadow-card outline-none focus-visible:ring-2 focus-visible:ring-primary-soft"
       >
         <table className="border-separate border-spacing-0 text-sm select-none">
           <thead>
