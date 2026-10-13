@@ -46,7 +46,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/cursos", label: "Cursos", icon: School, roles: [...STAFF, "PRECEPTOR"], available: true },
   { href: "/materias", label: "Materias", icon: BookText, roles: STAFF, available: true },
   { href: "/personas", label: "Personas", icon: Users, roles: STAFF, available: true },
-  { href: "/reportes", label: "Reportes", icon: BarChart3, roles: ["SUPERADMIN", "DIRECTIVO"], available: false },
+  { href: "/reportes", label: "Reportes", icon: BarChart3, roles: ["SUPERADMIN", "DIRECTIVO", "PRECEPTOR"], available: true },
   { href: "/configuracion", label: "Configuración", icon: Settings, roles: ["SUPERADMIN", "DIRECTIVO"], available: true },
 ];
 

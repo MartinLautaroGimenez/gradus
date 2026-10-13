@@ -4,6 +4,11 @@ Sistema de gestión escolar: notas, asistencia, comunicados, convivencia y
 comunicación directa entre la escuela y las familias. Pensado primero para el
 nivel secundario de la ETec (Universidad de Mendoza).
 
+**Módulos:** notas (planilla tipo Excel), asistencia, comunicados con
+seguimiento de lectura, notificaciones (bandeja, push y email), mensajería,
+convivencia, calendario, autorizaciones, reportes, y la administración de
+ciclos, cursos, materias y personas (con importación desde Excel).
+
 - **Alcance, módulos y hoja de ruta:** [`docs/ALCANCE.md`](docs/ALCANCE.md)
 - **Instalación en un servidor (homelab / ETec):** [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md)
 
@@ -33,6 +38,9 @@ npm run db:seed
 npm run dev
 ```
 
+Para probar las notificaciones push en local: `npm run push:keys` y copiar las
+claves a `.env` (ver `.env.example`).
+
 Abrir http://localhost:3000.
 
 ### Usuarios de prueba
@@ -50,7 +58,8 @@ inicial y piden cambiarla en el primer ingreso.
 | `docente@gradus.local` | Docente |
 | `acabrera@gradus.local` | Docente y madre de un alumno (varios roles) |
 | `familia@gradus.local` | Familia con dos hijos en cursos distintos |
-| `alumno@gradus.local` | Alumno de 1° A |
+| `tutor1@gradus.local` … `tutor20@gradus.local` | Familias del resto de los alumnos |
+| `alumno@gradus.local`, `alumno1@gradus.local` … | Alumnos (`alumno@` es de 1° A) |
 
 ## Scripts
 
@@ -71,6 +80,7 @@ prisma/            esquema, migraciones y datos de prueba
 src/app/login      inicio de sesión
 src/app/(app)      páginas privadas (requieren sesión)
 src/components     componentes de interfaz
-src/lib            lógica: auth, base de datos, cálculo de notas
+src/lib            lógica: auth, permisos, cálculo de notas y asistencia,
+                   notificaciones, reportes
 docs/              documentación del proyecto
 ```

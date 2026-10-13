@@ -83,7 +83,7 @@ también es padre de un alumno) y ve lo que corresponde a cada uno.
 | **Convivencia** | Observaciones, reconocimientos y sanciones (las aplican preceptores y directivos), firma de la familia con comentario | ✅ 6 |
 | **Calendario** | Vista mensual y agenda; evaluaciones de la planilla automáticas; feriados, actos, reuniones y salidas por escuela o curso | ✅ 7 |
 | **Autorizaciones** | Salidas educativas y permisos con respuesta digital de la familia, plazo y seguimiento | ✅ 7 |
-| **Reportes** | Rendimiento por curso y materia, ausentismo, alumnos en riesgo | 8 |
+| **Reportes** | Tablero de la dirección: promedios por curso, distribución, materias con más desaprobados, ausentismo, alumnos en riesgo (exportable) | ✅ 8 |
 | Futuro | Horarios, tareas, inscripciones online, cuotas y pagos (hoy los maneja la Universidad), otros niveles | — |
 
 ## Hoja de ruta
@@ -102,7 +102,7 @@ punta: modelo de datos, pantallas, permisos y tests.
 5. ✅ **Comunicados y notificaciones.**
 6. ✅ **Mensajería y convivencia.**
 7. ✅ **Calendario y autorizaciones.**
-8. **Reportes.**
+8. ✅ **Reportes.**
 
 ## Decisiones técnicas
 
@@ -241,6 +241,26 @@ aviso por conversación (no uno por mensaje) mientras no se lea.
 - Seguimiento por alumno con filtro de quienes no respondieron y recordatorio
   con un botón.
 
+## Reportes
+
+- Para la dirección (toda la escuela) y los preceptores (sus cursos).
+- Indicadores: promedio general, porcentaje de materias por debajo de la nota
+  de aprobación, alumnos en riesgo y alertas de asistencia.
+- Gráficos: promedio por curso (con la línea de aprobación), distribución de
+  promedios, materias con más alumnos abajo, inasistencias promedio por curso.
+  Cada gráfico tiene tooltip y vista de tabla.
+- **Alumno en riesgo:** 3 o más materias por debajo de la nota de aprobación,
+  o inasistencias desde el 90 % del tope. Lista filtrable por curso y
+  descargable en CSV para Excel.
+- Los promedios son "hasta hoy": usan los períodos con notas cargadas.
+
+## Inicio
+
+Cada persona ve al entrar lo que le importa: pendientes (comunicados para
+notificarse, registros para firmar, autorizaciones sin responder), eventos de
+las próximas dos semanas y un resumen según su rol (cursos, materias, hijos
+con sus inasistencias).
+
 ## Cuentas y contraseñas
 
 - Todas las personas se identifican por su **DNI**; el email es opcional.
@@ -256,6 +276,7 @@ aviso por conversación (no uno por mensaje) mientras no se lea.
 
 ## Pendiente de definir
 
+- Criterio de "alumno en riesgo" (hoy: 3 materias abajo o 90 % del tope de faltas).
 - Si un ausente en una evaluación cuenta como 1 o no cuenta (hoy no cuenta).
 - Si además del promedio anual hace falta aprobar el 2° cuatrimestre.
 
