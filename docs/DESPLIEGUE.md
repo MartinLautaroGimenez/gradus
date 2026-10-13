@@ -11,14 +11,18 @@ servidor de la ETec.
 
 ## Instalación automática (recomendada)
 
-En un servidor Debian/Ubuntu (o un contenedor LXC de Proxmox con Debian), como root:
+En un servidor Debian/Ubuntu (o un contenedor LXC de Proxmox con Debian). Como
+el repositorio es privado, primero lo clonás con tu cuenta de GitHub (usuario
+y un token personal, o una clave SSH) y el script toma el código de esa copia:
+el servidor nunca guarda credenciales de GitHub.
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/MartinLautaroGimenez/gradus/main/scripts/instalar.sh
-bash instalar.sh
+git clone https://github.com/MartinLautaroGimenez/gradus.git
+cd gradus
+sudo bash scripts/instalar.sh
 ```
 
-El script instala PostgreSQL y Node 22, descarga Gradus en `/opt/gradus`,
+El script instala PostgreSQL y Node 22, copia Gradus a `/opt/gradus`,
 genera el `.env` con contraseñas y claves nuevas, aplica las migraciones,
 compila, deja el servicio `gradus` andando y pide los datos del primer
 administrador. Queda accesible en `http://IP-DEL-SERVIDOR:3000`.
@@ -28,11 +32,12 @@ Opciones (se pasan como variables antes del comando):
 | Variable | Para qué |
 |---|---|
 | `DOMINIO=gradus.ejemplo.com` | Instala Caddy y sirve Gradus por HTTPS con certificado automático (el dominio tiene que apuntar al servidor y los puertos 80/443 tienen que llegarle) |
-| `RAMA=nombre-de-rama` | Instalar otra rama (por defecto `main`) |
+| `RAMA=nombre-de-rama` | Instalar otra rama (por defecto, la que tenga tu copia) |
 | `DEMO=1` | Cargar los datos de prueba (sólo si la base está vacía) |
 
-Para **actualizar**, se vuelve a correr el mismo script: trae el código nuevo,
-aplica migraciones, recompila y reinicia. No toca el `.env` ni los datos.
+Para **actualizar**: `git pull` en tu copia y `sudo bash scripts/instalar.sh`
+otra vez. Trae el código nuevo, aplica migraciones, recompila y reinicia. No
+toca el `.env` ni los datos.
 
 Otro administrador (o recuperar el acceso): `cd /opt/gradus && sudo -u gradus HOME=/var/lib/gradus npm run crear-admin`.
 

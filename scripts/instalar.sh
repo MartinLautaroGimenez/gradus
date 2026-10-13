@@ -2,18 +2,27 @@
 # Instala o actualiza Gradus en un servidor Debian/Ubuntu (también un LXC de Proxmox).
 # Se puede correr las veces que haga falta: la primera vez instala, después actualiza.
 #
-# Uso (como root):
-#   bash instalar.sh                         # acceso por la red local, http://IP:3000
-#   DOMINIO=gradus.ejemplo.com bash instalar.sh   # con HTTPS automático (Caddy)
+# Uso: desde una copia del repositorio (el repo es privado, así que la clonás
+# vos con tu cuenta de GitHub y el servidor no necesita credenciales):
+#
+#   git clone https://github.com/MartinLautaroGimenez/gradus.git && cd gradus
+#   sudo bash scripts/instalar.sh                              # http://IP:3000 en la red local
+#   sudo DOMINIO=gradus.ejemplo.com bash scripts/instalar.sh   # con HTTPS automático (Caddy)
+#
+# Para actualizar: `git pull` en esa copia y volver a correr el script.
 #
 # Variables opcionales:
-#   RAMA=main          rama del repositorio a instalar
+#   RAMA=...           rama a instalar (por defecto, la que tenga la copia)
 #   DEMO=1             carga los datos de prueba (sólo si la base está vacía)
 #   PUERTO=3000        puerto interno de la aplicación
 
 set -euo pipefail
 
-REPO="${REPO:-https://github.com/MartinLautaroGimenez/gradus.git}"
+# De dónde se toma el código: la copia desde la que se corre el script, o un repositorio.
+COPIA="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -z "${ORIGEN:-}" && -d "$COPIA/.git" ]]; then ORIGEN="$COPIA"; fi
+ORIGEN="${ORIGEN:-https://github.com/MartinLautaroGimenez/gradus.git}"
+if [[ -z "${RAMA:-}" && -d "$ORIGEN/.git" ]]; then RAMA="$(git -C "$ORIGEN" rev-parse --abbrev-ref HEAD)"; fi
 RAMA="${RAMA:-main}"
 DOMINIO="${DOMINIO:-}"
 PUERTO="${PUERTO:-3000}"
@@ -55,16 +64,20 @@ mkdir -p "$DATOS/storage"
 chown -R "$USUARIO:$USUARIO" "$DATOS"
 chmod 750 "$DATOS"
 
+# Las operaciones de git se hacen como root (puede leer la copia aunque esté en
+# una carpeta personal) y después la carpeta pasa a ser del usuario gradus.
+git_root() { git -c safe.directory='*' "$@"; }
+[[ "$ORIGEN" != "$DIR" ]] || error "Corré el script desde tu copia del repositorio, no desde $DIR."
 if [[ -d "$DIR/.git" ]]; then
-  paso "Actualizando el código (rama $RAMA)"
-  como_gradus "git fetch --quiet origin '$RAMA' && git checkout --quiet '$RAMA' && git merge --quiet --ff-only 'origin/$RAMA'" \
+  paso "Actualizando el código (rama $RAMA desde $ORIGEN)"
+  git_root -C "$DIR" fetch --quiet "$ORIGEN" "$RAMA" || error "No se pudo leer la rama $RAMA de $ORIGEN."
+  git_root -C "$DIR" checkout --quiet -B "$RAMA" FETCH_HEAD 2>/dev/null \
     || error "No se pudo actualizar: ¿hay cambios hechos a mano en $DIR?"
 else
-  paso "Descargando el código (rama $RAMA)"
-  mkdir -p "$DIR"
-  chown "$USUARIO:$USUARIO" "$DIR"
-  runuser -u "$USUARIO" -- env HOME="$DATOS" git clone --quiet --branch "$RAMA" "$REPO" "$DIR"
+  paso "Copiando el código (rama $RAMA desde $ORIGEN)"
+  git_root clone --quiet --branch "$RAMA" "$ORIGEN" "$DIR"
 fi
+chown -R "$USUARIO:$USUARIO" "$DIR"
 
 # ── Base de datos ────────────────────────────────────────────
 paso "Configurando PostgreSQL"
@@ -221,7 +234,7 @@ fi
 
 printf '\n\033[1;32mGradus está funcionando en %s\033[0m\n' "$URL"
 echo "  · Registros:   journalctl -u gradus -f"
-echo "  · Actualizar:  sudo RAMA=$RAMA bash $DIR/scripts/instalar.sh"
+echo "  · Actualizar:  git pull en tu copia del repositorio y volver a correr este script"
 echo "  · Backup:      ver docs/DESPLIEGUE.md (base de datos y $DATOS/storage)"
 if [[ -z "$DOMINIO" ]]; then
   aviso "Sin HTTPS las notificaciones push no funcionan. Para activarlas, volvé a correr el script con DOMINIO=tu.dominio"
