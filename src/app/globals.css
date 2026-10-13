@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+/* Tokens de diseño. Se usan como clases: bg-surface, text-muted, border-border, etc. */
+:root {
+  --background: #f6f7fb;
+  --surface: #ffffff;
+  --surface-muted: #f1f3f9;
+  --foreground: #0f172a;
+  --muted: #5b6478;
+  --border: #e2e6ef;
+  --primary: #3b5bdb;
+  --primary-hover: #2f4ac0;
+  --primary-soft: #e8edff;
+  --primary-foreground: #ffffff;
+  --success: #18794e;
+  --success-soft: #e3f6ec;
+  --warning: #a35200;
+  --warning-soft: #fff1e0;
+  --danger: #c92a2a;
+  --danger-soft: #ffe8e8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b0f19;
+    --surface: #121829;
+    --surface-muted: #1a2135;
+    --foreground: #e6e9f2;
+    --muted: #9aa3b8;
+    --border: #262f45;
+    --primary: #6b8afd;
+    --primary-hover: #8aa2ff;
+    --primary-soft: #1d2747;
+    --primary-foreground: #0b0f19;
+    --success: #4cc38a;
+    --success-soft: #11291e;
+    --warning: #f5a524;
+    --warning-soft: #2e2210;
+    --danger: #ff6b6b;
+    --danger-soft: #331618;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}

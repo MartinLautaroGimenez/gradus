@@ -1,0 +1,679 @@
+// Modelo de datos de Gradus.
+// Convención: nombres de modelos y campos en inglés; textos visibles en español.
+// Cada módulo nuevo agrega sus modelos en una sección propia de este archivo.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// Institución
+// ─────────────────────────────────────────────────────────────
+
+/// Datos y configuración de la escuela. Por ahora hay una sola fila.
+model School {
+  id              String  @id @default(cuid())
+  name            String
+  shortName       String
+  /// Nota mínima de aprobación (escala 1 a 10).
+  passingGrade    Decimal @default(7) @db.Decimal(4, 2)
+  /// Decimales con los que se muestran y redondean los promedios.
+  gradeDecimals   Int     @default(2)
+  /// Tope de inasistencias por ciclo lectivo antes de quedar libre.
+  maxAbsences     Int     @default(20)
+  /// Cuánto suma cada llegada tarde y cada retiro anticipado (1 = una falta).
+  lateValue       Decimal @default(0.25) @db.Decimal(3, 2)
+  earlyLeaveValue Decimal @default(0.5) @db.Decimal(3, 2)
+  /// Si las inasistencias justificadas suman para el tope.
+  justifiedCount  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────
+// Usuarios, roles y sesiones
+// ─────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPERADMIN
+  DIRECTIVO
+  ADMINISTRATIVO
+  PRECEPTOR
+  DOCENTE
+  TUTOR
+  ALUMNO
+}
+
+/// Una persona que puede iniciar sesión. Una misma persona puede tener
+/// varios roles (por ejemplo, un docente que además es tutor de un alumno).
+model User {
+  id                 String    @id @default(cuid())
+  /// Documento sin puntos. Es el dato con el que se identifica a cada persona.
+  dni                String    @unique
+  /// Opcional: muchos alumnos no tienen email y entran con el DNI.
+  email              String?   @unique
+  passwordHash       String
+  firstName          String
+  lastName           String
+  phone              String?
+  roles              Role[]
+  active             Boolean   @default(true)
+  lastLoginAt        DateTime?
+  /// Las cuentas creadas por la escuela arrancan con una contraseña inicial
+  /// (el DNI) y deben cambiarla en el primer ingreso.
+  mustChangePassword Boolean   @default(false)
+  /// Recibir por email las notificaciones (además de la bandeja y el push).
+  emailNotifications Boolean   @default(true)
+
+  sessions Session[]
+
+  studentProfile        Student?
+  guardianOf            StudentGuardian[]
+  preceptorOfCourses    Course[]                  @relation("CoursePreceptor")
+  teachingAssignments   CourseSubject[]           @relation("CourseSubjectTeacher")
+  gradesUpdated         Grade[]
+  attendanceRecorded    AttendanceRecord[]
+  notifications         Notification[]
+  pushSubscriptions     PushSubscription[]
+  announcements         Announcement[]
+  announcementsReceived AnnouncementRecipient[]
+  attachmentsUploaded   Attachment[]
+  conversations         ConversationParticipant[]
+  messagesSent          Message[]
+  incidentsCreated      Incident[]
+  incidentSignatures    IncidentSignature[]
+  eventsCreated         CalendarEvent[]
+  authorizationsCreated AuthorizationRequest[]
+  authorizationAnswers  AuthorizationResponse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lastName, firstName])
+}
+
+/// Sesión de inicio de sesión. El navegador sólo guarda un token aleatorio;
+/// acá se guarda su hash SHA-256, nunca el token en claro.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Estructura académica
+// ─────────────────────────────────────────────────────────────
+
+enum Level {
+  INICIAL
+  PRIMARIO
+  SECUNDARIO
+  TERCIARIO
+}
+
+enum Shift {
+  MANANA
+  TARDE
+  VESPERTINO
+  NOCHE
+}
+
+/// Ciclo lectivo (por ejemplo, 2026).
+model AcademicYear {
+  id        String   @id @default(cuid())
+  year      Int      @unique
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  /// Sólo un ciclo debería estar activo a la vez.
+  active    Boolean  @default(false)
+
+  periods GradingPeriod[]
+  courses Course[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PeriodKind {
+  /// Cuatrimestre o trimestre: cuenta para el promedio anual.
+  REGULAR
+  /// Instancias de diciembre y febrero para quienes no aprobaron.
+  COMPENSATORIO
+}
+
+/// Período de calificación dentro de un ciclo: los cuatrimestres y las
+/// instancias compensatorias de diciembre y febrero.
+model GradingPeriod {
+  id             String       @id @default(cuid())
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  name           String
+  order          Int
+  kind           PeriodKind   @default(REGULAR)
+  startDate      DateTime     @db.Date
+  endDate        DateTime     @db.Date
+  /// Cuando se cierra, los docentes ya no pueden modificar notas del período.
+  closed         Boolean      @default(false)
+
+  assessments Assessment[]
+
+  @@unique([academicYearId, order])
+}
+
+/// Materia del plan de estudios (por ejemplo, "Matemática" de 3° año).
+model Subject {
+  id          String  @id @default(cuid())
+  name        String
+  shortName   String?
+  level       Level   @default(SECUNDARIO)
+  /// Año del plan al que pertenece (1 a 6 en secundario técnico).
+  grade       Int
+  /// Horas cátedra semanales.
+  weeklyHours Int?
+
+  courseSubjects CourseSubject[]
+
+  @@unique([level, grade, name])
+}
+
+/// Curso y división de un ciclo lectivo (por ejemplo, "3° A" de 2026).
+model Course {
+  id             String       @id @default(cuid())
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  level          Level        @default(SECUNDARIO)
+  grade          Int
+  division       String
+  shift          Shift        @default(MANANA)
+  preceptorId    String?
+  preceptor      User?        @relation("CoursePreceptor", fields: [preceptorId], references: [id], onDelete: SetNull)
+
+  subjects       CourseSubject[]
+  enrollments    Enrollment[]
+  announcements  AnnouncementCourse[]
+  events         CalendarEventCourse[]
+  authorizations AuthorizationCourse[]
+
+  @@unique([academicYearId, level, grade, division])
+}
+
+/// Una materia dictada en un curso concreto, con su docente a cargo.
+model CourseSubject {
+  id        String  @id @default(cuid())
+  courseId  String
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  teacherId String?
+  teacher   User?   @relation("CourseSubjectTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+
+  assessments Assessment[]
+
+  @@unique([courseId, subjectId])
+  @@index([teacherId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Alumnos y familias
+// ─────────────────────────────────────────────────────────────
+
+/// Legajo del alumno. Siempre está asociado a un usuario con rol ALUMNO.
+model Student {
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileNumber String    @unique
+  birthDate  DateTime? @db.Date
+  address    String?
+  notes      String?
+
+  guardians   StudentGuardian[]
+  enrollments Enrollment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum GuardianRelationship {
+  MADRE
+  PADRE
+  TUTOR_LEGAL
+  OTRO
+}
+
+/// Vínculo entre un alumno y un adulto responsable. Un tutor puede tener
+/// varios hijos y ver a todos desde la misma cuenta.
+model StudentGuardian {
+  id           String               @id @default(cuid())
+  studentId    String
+  student      Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guardianId   String
+  guardian     User                 @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  relationship GuardianRelationship
+  /// Si puede retirar al alumno y firmar autorizaciones.
+  isPrimary    Boolean              @default(false)
+
+  @@unique([studentId, guardianId])
+  @@index([guardianId])
+}
+
+enum EnrollmentStatus {
+  ACTIVA
+  PASE
+  BAJA
+  EGRESADO
+}
+
+/// Matrícula de un alumno en un curso para un ciclo lectivo.
+model Enrollment {
+  id         String           @id @default(cuid())
+  studentId  String
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  status     EnrollmentStatus @default(ACTIVA)
+  /// Número de orden en la lista del curso.
+  listNumber Int?
+
+  grades                 Grade[]
+  attendance             AttendanceRecord[]
+  incidents              Incident[]
+  authorizationResponses AuthorizationResponse[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, courseId])
+  @@index([courseId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Calificaciones
+// ─────────────────────────────────────────────────────────────
+
+enum AssessmentKind {
+  EXAMEN
+  TRABAJO_PRACTICO
+  ORAL
+  CONCEPTO
+  OTRO
+}
+
+/// Una columna de la planilla de notas: una evaluación de una materia en un
+/// curso y un período.
+model Assessment {
+  id              String         @id @default(cuid())
+  courseSubjectId String
+  courseSubject   CourseSubject  @relation(fields: [courseSubjectId], references: [id], onDelete: Cascade)
+  periodId        String
+  period          GradingPeriod  @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  title           String
+  kind            AssessmentKind @default(EXAMEN)
+  date            DateTime?      @db.Date
+  /// Peso relativo para el promedio del período (por defecto 1).
+  weight          Decimal        @default(1) @db.Decimal(5, 2)
+  /// Orden de la columna en la planilla.
+  position        Int
+
+  grades Grade[]
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([courseSubjectId, periodId])
+}
+
+/// Nota de un alumno en una evaluación. `value` nulo con `absent` = ausente.
+model Grade {
+  id           String     @id @default(cuid())
+  assessmentId String
+  assessment   Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  value        Decimal?   @db.Decimal(4, 2)
+  absent       Boolean    @default(false)
+
+  updatedById String?
+  updatedBy   User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt   DateTime @updatedAt
+
+  @@unique([assessmentId, enrollmentId])
+  @@index([enrollmentId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Asistencia
+// ─────────────────────────────────────────────────────────────
+
+enum AttendanceStatus {
+  PRESENTE
+  AUSENTE
+  TARDE
+  /// Retiro anticipado
+  RETIRO
+}
+
+/// Asistencia diaria de un alumno. Se guarda una fila por alumno cada día
+/// que se toma lista (también los presentes), así se distingue "presente"
+/// de "no se tomó lista".
+model AttendanceRecord {
+  id           String           @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  date         DateTime         @db.Date
+  status       AttendanceStatus
+  justified    Boolean          @default(false)
+  note         String?
+
+  recordedById String?
+  recordedBy   User?    @relation(fields: [recordedById], references: [id], onDelete: SetNull)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([enrollmentId, date])
+  @@index([date])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Notificaciones
+// ─────────────────────────────────────────────────────────────
+
+enum NotificationKind {
+  COMUNICADO
+  MENSAJE
+  ASISTENCIA
+  CONVIVENCIA
+  AUTORIZACION
+  CALENDARIO
+  NOTA
+  SISTEMA
+}
+
+/// Aviso en la bandeja de una persona. Además se intenta enviar por push y
+/// por email; se registra cuándo salió cada uno para poder auditar entregas.
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind        NotificationKind
+  title       String
+  body        String?
+  /// Ruta interna a la que lleva el aviso (por ejemplo /comunicados/abc).
+  link        String?
+  readAt      DateTime?
+  pushSentAt  DateTime?
+  emailSentAt DateTime?
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+/// Suscripción Web Push de un navegador/dispositivo.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Comunicados
+// ─────────────────────────────────────────────────────────────
+
+/// Comunicado institucional o de curso. Los destinatarios se calculan al
+/// publicarlo y quedan guardados, así se sabe quién lo leyó y quién no.
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  body        String
+  authorId    String?
+  author      User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  /// Pide confirmación de lectura ("notificado").
+  requiresAck Boolean  @default(false)
+  /// Roles destinatarios (TUTOR = familias).
+  targetRoles Role[]
+  createdAt   DateTime @default(now())
+
+  /// Vacío = toda la escuela.
+  courses     AnnouncementCourse[]
+  recipients  AnnouncementRecipient[]
+  attachments Attachment[]
+}
+
+model AnnouncementCourse {
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  courseId       String
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([announcementId, courseId])
+}
+
+model AnnouncementRecipient {
+  id             String       @id @default(cuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt         DateTime?
+  acknowledgedAt DateTime?
+
+  @@unique([announcementId, userId])
+  @@index([userId])
+}
+
+/// Archivo adjunto. Se guarda en disco (STORAGE_DIR) y se descarga por
+/// /archivos/[id], que controla permisos.
+model Attachment {
+  id             String        @id @default(cuid())
+  fileName       String
+  mimeType       String
+  size           Int
+  storageKey     String        @unique
+  uploadedById   String?
+  uploadedBy     User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  announcementId String?
+  announcement   Announcement? @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────
+// Mensajería
+// ─────────────────────────────────────────────────────────────
+
+/// Conversación privada entre dos personas.
+model Conversation {
+  id            String                    @id @default(cuid())
+  createdAt     DateTime                  @default(now())
+  /// Fecha del último mensaje (para ordenar la bandeja).
+  lastMessageAt DateTime                  @default(now())
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  @@index([lastMessageAt])
+}
+
+model ConversationParticipant {
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Hasta cuándo leyó: los mensajes posteriores de la otra persona son "no leídos".
+  lastReadAt     DateTime?
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String?
+  sender         User?        @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Convivencia
+// ─────────────────────────────────────────────────────────────
+
+enum IncidentKind {
+  RECONOCIMIENTO
+  OBSERVACION
+  LLAMADO_ATENCION
+  APERCIBIMIENTO
+  ACTA
+  SUSPENSION
+}
+
+/// Registro de convivencia de un alumno: desde una observación o un
+/// reconocimiento hasta una sanción. Las sanciones requieren que la familia
+/// firme que se notificó.
+model Incident {
+  id                String       @id @default(cuid())
+  enrollmentId      String
+  enrollment        Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  kind              IncidentKind
+  date              DateTime     @db.Date
+  description       String
+  /// Acciones reparadoras o medidas acordadas.
+  measures          String?
+  requiresSignature Boolean      @default(true)
+  createdById       String?
+  createdBy         User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt         DateTime     @default(now())
+
+  signatures IncidentSignature[]
+
+  @@index([enrollmentId])
+  @@index([date])
+}
+
+/// Firma (notificación) de un adulto responsable, con su comentario opcional.
+model IncidentSignature {
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment    String?
+  signedAt   DateTime @default(now())
+
+  @@id([incidentId, userId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Calendario
+// ─────────────────────────────────────────────────────────────
+
+enum EventKind {
+  EVALUACION
+  ACTO
+  FERIADO
+  RECESO
+  REUNION
+  SALIDA
+  OTRO
+}
+
+/// Evento del calendario escolar. Sin cursos = toda la escuela. Las
+/// evaluaciones con fecha de la planilla de notas se muestran solas (no se
+/// guardan acá).
+model CalendarEvent {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  kind        EventKind @default(OTRO)
+  startDate   DateTime  @db.Date
+  /// Para eventos de varios días (receso, campamento). Null = un solo día.
+  endDate     DateTime? @db.Date
+  /// Hora como texto "08:30" (opcional).
+  time        String?
+  location    String?
+  createdById String?
+  createdBy   User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  courses CalendarEventCourse[]
+
+  @@index([startDate])
+}
+
+model CalendarEventCourse {
+  eventId  String
+  event    CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, courseId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Autorizaciones
+// ─────────────────────────────────────────────────────────────
+
+/// Pedido de autorización a las familias (salida educativa, campamento,
+/// uso de imagen, etc.) para uno o más cursos.
+model AuthorizationRequest {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  /// Día de la actividad (opcional).
+  eventDate   DateTime? @db.Date
+  /// Hasta cuándo se puede responder (inclusive).
+  deadline    DateTime? @db.Date
+  createdById String?
+  createdBy   User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  courses   AuthorizationCourse[]
+  responses AuthorizationResponse[]
+}
+
+model AuthorizationCourse {
+  requestId String
+  request   AuthorizationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([requestId, courseId])
+}
+
+/// Respuesta por alumno. La da cualquiera de sus adultos responsables; se
+/// guarda quién respondió y cuándo (firma digital).
+model AuthorizationResponse {
+  id           String               @id @default(cuid())
+  requestId    String
+  request      AuthorizationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  enrollmentId String
+  enrollment   Enrollment           @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  guardianId   String?
+  guardian     User?                @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  authorized   Boolean
+  comment      String?
+  respondedAt  DateTime             @default(now())
+
+  @@unique([requestId, enrollmentId])
+}
