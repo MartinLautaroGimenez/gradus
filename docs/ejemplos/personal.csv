@@ -1,0 +1,6 @@
+﻿apellido;nombre;dni;rol;email;telefono;cursos
+Bustamante;Laura;25680935;Directora;laura.bustamante@example.com;261 000-1344;
+Lucero;Ricardo;28595155;Vicedirector;ricardo.lucero@example.com;261 000-5133;
+Quiroga;Diego;30972062;Preceptor;diego.quiroga@example.com;261 000-4899;1° A, 1° B
+Funes;Mariela;26396221;Preceptora;mariela.funes@example.com;261 000-2893;2° A, 2° B
+Arancibia;Pablo;37458466;Preceptor, Docente;pablo.arancibia@example.com;261 000-7180;3° A, 3° B

@@ -7,49 +7,71 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Table, Td, Th } from "@/components/ui/table";
 import { useFormAction } from "@/lib/use-form-action";
-import { type ImportState, importStudents } from "./actions";
+import { type ImportState, importPeople } from "./actions";
 
-export function ImportFlow() {
-  const [state, onSubmit, pending] = useFormAction<ImportState>(importStudents, {});
+const STATUS_BADGE = {
+  nuevo: { tone: "success", label: "Nuevo" },
+  actualizar: { tone: "primary", label: "Se actualiza" },
+  existente: { tone: "neutral", label: "Se omite" },
+  error: { tone: "danger", label: "Error" },
+} as const;
+
+export function ImportFlow({ kind }: { kind: "alumnos" | "personal" }) {
+  const [state, onSubmit, pending] = useFormAction<ImportState>(importPeople, {});
   const formRef = useRef<HTMLFormElement>(null);
   const preview = state.preview;
+  const columns =
+    kind === "alumnos"
+      ? { detail: "Curso", extra: "Familia", noun: "alumnos" }
+      : { detail: "Rol", extra: "Cursos a cargo", noun: "personas" };
 
   if (state.done) {
     return (
       <Card className="flex flex-col gap-3">
         <CardTitle>Importación terminada</CardTitle>
         <ul className="text-sm">
-          <li>{state.done.students} alumnos creados y matriculados</li>
-          <li>{state.done.guardians} cuentas de familia creadas</li>
-          <li>{state.done.linked} vínculos alumno–familia</li>
+          {state.done.lines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
         </ul>
         <CardDescription>
-          Todos ingresan con su DNI como usuario y contraseña; se les pide cambiarla en el primer ingreso.
+          Las cuentas nuevas ingresan con su DNI como usuario y contraseña; se les pide cambiarla en el primer ingreso.
         </CardDescription>
-        <div className="flex gap-2">
-          <Link href="/personas?rol=ALUMNO" className="text-sm font-medium text-primary hover:underline">
-            Ver alumnos
-          </Link>
-        </div>
+        <Link href="/personas" className="text-sm font-medium text-primary hover:underline">
+          Ver personas
+        </Link>
       </Card>
     );
   }
 
   return (
     <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
-      <Card className="flex flex-wrap items-center gap-3">
-        <input
-          type="file"
-          name="file"
-          accept=".xlsx,.csv"
-          required
-          className="text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-primary-soft file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary"
-          // Al cambiar de archivo se vuelve a la vista previa.
-          onChange={() => formRef.current?.requestSubmit(formRef.current.querySelector<HTMLButtonElement>("[value=preview]"))}
-        />
-        <Button type="submit" name="mode" value="preview" variant="secondary" disabled={pending}>
-          {pending ? "Leyendo…" : "Revisar archivo"}
-        </Button>
+      <input type="hidden" name="kind" value={kind} />
+      <Card className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            type="file"
+            name="file"
+            accept=".xlsx,.csv"
+            required
+            aria-label="Archivo"
+            className="text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-primary-soft file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary"
+            // Al cambiar de archivo se vuelve a la vista previa.
+            onChange={() => formRef.current?.requestSubmit(formRef.current.querySelector<HTMLButtonElement>("[value=preview]"))}
+          />
+          <Button type="submit" name="mode" value="preview" variant="secondary" disabled={pending}>
+            {pending ? "Leyendo…" : "Revisar archivo"}
+          </Button>
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="createCourses"
+            className="size-4"
+            onChange={() => preview && formRef.current?.requestSubmit(formRef.current.querySelector<HTMLButtonElement>("[value=preview]"))}
+          />
+          Crear los cursos que falten en el ciclo activo
+        </label>
       </Card>
 
       {state.error && (
@@ -61,10 +83,11 @@ export function ImportFlow() {
       {preview && (
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap gap-2 text-sm">
-            <Badge tone="success">{preview.counts.nuevos} alumnos nuevos</Badge>
-            <Badge tone="primary">{preview.counts.tutoresNuevos} familias nuevas</Badge>
-            {preview.counts.existentes > 0 && <Badge>{preview.counts.existentes} ya registrados</Badge>}
-            {preview.counts.errores > 0 && <Badge tone="danger">{preview.counts.errores} con errores</Badge>}
+            {preview.summary.map((item) => (
+              <Badge key={item.label} tone={item.tone}>
+                {item.label}
+              </Badge>
+            ))}
           </div>
 
           {preview.errors.length > 0 && (
@@ -80,52 +103,50 @@ export function ImportFlow() {
             </Card>
           )}
 
-          <Table>
-            <thead>
-              <tr>
-                <Th className="w-16">Fila</Th>
-                <Th>Alumno</Th>
-                <Th>Curso</Th>
-                <Th className="hidden md:table-cell">Familia</Th>
-                <Th>Estado</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {preview.rows.map((row) => (
-                <tr key={row.dni} className={row.status === "error" ? "bg-danger-soft/40" : ""}>
-                  <Td className="tabular-nums text-muted">{row.lines.join(", ")}</Td>
-                  <Td>
-                    <span className="font-medium">{row.name}</span>
-                    <span className="block text-xs text-muted">DNI {row.dni}</span>
-                  </Td>
-                  <Td>{row.course}</Td>
-                  <Td className="hidden text-sm md:table-cell">
-                    {row.guardians.length === 0
-                      ? "—"
-                      : row.guardians.map((g) => (
-                          <span key={g.dni} className="block">
-                            {g.name} {g.existing && <span className="text-xs text-muted">(ya registrado)</span>}
-                          </span>
-                        ))}
-                  </Td>
-                  <Td>
-                    <Badge tone={row.status === "nuevo" ? "success" : row.status === "error" ? "danger" : "neutral"}>
-                      {row.status === "nuevo" ? "Nuevo" : row.status === "error" ? "Error" : "Se omite"}
-                    </Badge>
-                    {row.status === "error" && (
-                      <span className="mt-1 block text-xs text-danger">{row.messages.join(" · ")}</span>
-                    )}
-                  </Td>
+          {preview.rows.length > 0 && (
+            <Table>
+              <thead>
+                <tr>
+                  <Th className="w-16">Fila</Th>
+                  <Th>Persona</Th>
+                  <Th>{columns.detail}</Th>
+                  <Th className="hidden md:table-cell">{columns.extra}</Th>
+                  <Th>Estado</Th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {preview.rows.map((row) => (
+                  <tr key={row.key} className={row.status === "error" ? "bg-danger-soft/40" : ""}>
+                    <Td className="tabular-nums text-muted">{row.lines.join(", ")}</Td>
+                    <Td>
+                      <span className="font-medium">{row.name}</span>
+                      <span className="block text-xs text-muted">DNI {row.dni}</span>
+                    </Td>
+                    <Td className="text-sm">{row.detail}</Td>
+                    <Td className="hidden text-sm md:table-cell">
+                      {row.extra.length === 0
+                        ? "—"
+                        : row.extra.map((line) => (
+                            <span key={line} className="block">
+                              {line}
+                            </span>
+                          ))}
+                    </Td>
+                    <Td>
+                      <Badge tone={STATUS_BADGE[row.status].tone}>{STATUS_BADGE[row.status].label}</Badge>
+                      {row.status !== "nuevo" && <span className="mt-1 block text-xs text-muted">{row.messages.join(" · ")}</span>}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <Button type="submit" name="mode" value="apply" disabled={pending || preview.counts.nuevos === 0}>
-              {pending ? "Importando…" : `Importar ${preview.counts.nuevos} alumnos`}
+            <Button type="submit" name="mode" value="apply" disabled={pending || preview.applicable === 0}>
+              {pending ? "Importando…" : `Importar ${preview.applicable} ${columns.noun}`}
             </Button>
-            {preview.counts.errores > 0 && (
+            {preview.summary.some((s) => s.tone === "danger") && (
               <span className="text-sm text-muted">Las filas con errores no se importan. Podés corregirlas y volver a subir el archivo.</span>
             )}
           </div>

@@ -1,0 +1,82 @@
+﻿apellido;nombre;dni;curso;legajo;email;fecha_nacimiento;tutor_apellido;tutor_nombre;tutor_dni;tutor_email;tutor_telefono;vinculo
+Cabrera;Lola Lucía;52925745;1° A;2026-001;;04/08/2013;Pizarro;Natalia;25746093;natalia.pizarro@example.com;261 000-7891;Madre
+Cabrera;Lola Lucía;52925745;1° A;2026-001;;04/08/2013;Cabrera;Andrés;31190751;andres.cabrera@example.com;261 000-9042;Padre
+Luna;Delfina Agustina;50725247;1° A;2026-002;;10/08/2013;Ramírez;Daniela;26219689;daniela.ramirez@example.com;261 000-6696;Madre
+Luna;Delfina Agustina;50725247;1° A;2026-002;;10/08/2013;Luna;Cristian;35507938;cristian.luna@example.com;261 000-7166;Padre
+Carrizo;Abril;52646343;1° A;2026-003;;28/10/2013;Rodríguez;Silvina;28099226;silvina.rodriguez@example.com;261 000-8554;Madre
+Carrizo;Abril;52646343;1° A;2026-003;;28/10/2013;Carrizo;Federico;23521428;federico.carrizo@example.com;261 000-7533;Padre
+Correa;Simón;52312209;1° A;2026-004;;04/12/2013;Correa;Cecilia;31462351;cecilia.correa@example.com;261 000-8851;Madre
+Correa;Simón;52312209;1° A;2026-004;;04/12/2013;Correa;Ezequiel;30690383;ezequiel.correa@example.com;261 000-1415;Padre
+Núñez;Juan Cruz;52875971;1° A;2026-005;;13/07/2013;Sánchez;Lorena;33312929;lorena.sanchez@example.com;261 000-8690;Madre
+Núñez;Juan Cruz;52875971;1° A;2026-005;;13/07/2013;Núñez;Mauricio;26211189;mauricio.nunez@example.com;261 000-7587;Padre
+González;Josefina;51585228;1° A;2026-006;;26/07/2013;González;Analía;29687780;analia.gonzalez@example.com;261 000-9567;Madre
+Herrera;Thiago;53288562;1° A;2026-007;;16/06/2013;Gómez;Lorena;33565090;lorena.gomez@example.com;261 000-9440;Madre
+Herrera;Thiago;53288562;1° A;2026-007;;16/06/2013;Herrera;Marcelo;29598748;marcelo.herrera@example.com;261 000-3999;Padre
+Rojas;Julieta Martina;52653508;1° A;2026-008;;18/05/2013;Rojas;Rodrigo;31741522;rodrigo.rojas@example.com;261 000-9955;Padre
+Sosa;Simón;49854138;1° A;2026-009;;14/11/2013;Sosa;Diego;31157065;diego.sosa@example.com;261 000-4652;Padre
+Lucero;Paulina;49715483;1° A;2026-010;;27/06/2013;Rojas;Daniela;35555906;daniela.rojas@example.com;261 000-3433;Madre
+Rodríguez;Bautista;51679417;1° B;2026-011;;07/07/2013;Rodríguez;Vanina;27498901;vanina.rodriguez@example.com;261 000-5975;Madre
+Rodríguez;Bautista;51679417;1° B;2026-011;;07/07/2013;Rodríguez;Rodrigo;27470089;rodrigo.rodriguez@example.com;261 000-2988;Padre
+Flores;Ramiro Nahuel;52665481;1° B;2026-012;;21/04/2013;Martínez;Eugenia;28696744;eugenia.martinez@example.com;261 000-1559;Madre
+Rodríguez;Abril;51107195;1° B;2026-013;;10/03/2013;Rodríguez;Jimena;25669571;jimena.rodriguez@example.com;261 000-9468;Madre
+Luna;Josefina;52923191;1° B;2026-014;;04/04/2013;Rojas;Romina;29846710;romina.rojas@example.com;261 000-3899;Madre
+Ríos;Pilar;49960087;1° B;2026-015;;20/12/2013;Rojas;Eugenia;35141825;eugenia.rojas@example.com;261 000-3989;Madre
+Domínguez;Catalina;52683949;1° B;2026-016;;12/12/2013;Domínguez;Mauricio;24224963;mauricio.dominguez@example.com;261 000-2662;Padre
+Gómez;Benjamín Mateo;50799893;1° B;2026-017;;04/02/2013;Ibáñez;Paula;28954630;paula.ibanez@example.com;261 000-1252;Tutora legal
+Molina;Joaquín;53112557;1° B;2026-018;;17/11/2013;Ríos;Analía;32497968;analia.rios@example.com;261 000-1622;Madre
+Molina;Joaquín;53112557;1° B;2026-018;;17/11/2013;Molina;Gonzalo;27302669;gonzalo.molina@example.com;261 000-4532;Padre
+Herrera;Matías;50745465;1° B;2026-019;;25/07/2013;Molina;Carla;34337745;carla.molina@example.com;261 000-8155;Madre
+Videla;Renata;52250623;1° B;2026-020;;10/01/2013;Ruiz;Eugenia;22941959;eugenia.ruiz@example.com;261 000-2844;Madre
+Rojas;Agustina;51164544;2° A;2026-021;;09/03/2012;Acosta;Cecilia;33116466;cecilia.acosta@example.com;261 000-4597;Madre
+Molina;Morena;50820134;2° A;2026-022;;05/11/2012;Ríos;Analía;32497968;analia.rios@example.com;261 000-1622;Madre
+Molina;Morena;50820134;2° A;2026-022;;05/11/2012;Molina;Gonzalo;27302669;gonzalo.molina@example.com;261 000-4532;Padre
+Ponce;Mateo;50518404;2° A;2026-023;;16/01/2012;Ponce;Jimena;35755024;jimena.ponce@example.com;261 000-5345;Madre
+Ponce;Mateo;50518404;2° A;2026-023;;16/01/2012;Ponce;Hernán;32620087;hernan.ponce@example.com;261 000-9527;Padre
+Sosa;Ignacio;51419146;2° A;2026-024;;18/08/2012;Silva;Silvina;35256747;silvina.silva@example.com;261 000-4809;Madre
+Suárez;Thiago;51793128;2° A;2026-025;;24/05/2012;Suárez;Cecilia;24579994;cecilia.suarez@example.com;261 000-8943;Madre
+Suárez;Thiago;51793128;2° A;2026-025;;24/05/2012;Suárez;Gustavo;27946386;gustavo.suarez@example.com;261 000-9572;Padre
+Rodríguez;Mía;49940072;2° A;2026-026;;03/03/2012;Ojeda;Marisa;27145748;marisa.ojeda@example.com;261 000-1731;Madre
+Rodríguez;Mía;49940072;2° A;2026-026;;03/03/2012;Rodríguez;Gonzalo;28385104;gonzalo.rodriguez@example.com;261 000-9830;Padre
+Benítez;Felipe;52141646;2° A;2026-027;;01/10/2012;Peralta;Marisa;33110963;marisa.peralta@example.com;261 000-4109;Madre
+Benítez;Felipe;52141646;2° A;2026-027;;01/10/2012;Benítez;Javier;26914265;javier.benitez@example.com;261 000-5838;Padre
+Molina;Juan Cruz;52454398;2° A;2026-028;;21/01/2012;Molina;Gustavo;25013575;gustavo.molina@example.com;261 000-6155;Padre
+Lucero;Felipe;52014470;2° A;2026-029;;20/04/2012;Rojas;Daniela;35555906;daniela.rojas@example.com;261 000-3433;Madre
+Luna;Catalina;50536105;2° A;2026-030;;27/06/2012;Luna;Verónica;28395450;veronica.luna@example.com;261 000-5301;Madre
+Lucero;Máximo;53304676;2° B;2026-031;;24/11/2012;Martínez;Verónica;35563020;veronica.martinez@example.com;261 000-9107;Madre
+Torres;Dante;50035126;2° B;2026-032;;14/05/2012;Torres;Lorena;25693852;lorena.torres@example.com;261 000-6710;Madre
+Sosa;Guadalupe;50605714;2° B;2026-033;;05/09/2012;Sosa;Diego;31157065;diego.sosa@example.com;261 000-4652;Padre
+Sosa;Joaquín;53370898;2° B;2026-034;;16/11/2012;Sánchez;Paula;26923599;paula.sanchez@example.com;261 000-8504;Madre
+Sosa;Joaquín;53370898;2° B;2026-034;;16/11/2012;Sosa;Gonzalo;28701664;gonzalo.sosa@example.com;261 000-1355;Padre
+Montenegro;Tomás Dante;52202669;2° B;2026-035;;20/07/2012;Montenegro;Hernán;23007159;hernan.montenegro@example.com;261 000-7549;Padre
+Núñez;Ciro;49831299;2° B;2026-036;;18/12/2012;Fernández;Mariana;32674841;mariana.fernandez@example.com;261 000-2979;Madre
+Núñez;Ciro;49831299;2° B;2026-036;;18/12/2012;Núñez;Marcelo;27479668;marcelo.nunez@example.com;261 000-1291;Padre
+Gómez;Josefina;51845276;2° B;2026-037;;05/02/2012;Gómez;Ricardo;33293464;ricardo.gomez@example.com;261 000-3798;Padre
+Fernández;Morena;53018856;2° B;2026-038;;09/01/2012;Fernández;Jimena;25881475;jimena.fernandez@example.com;261 000-8713;Madre
+Núñez;Ramiro;49770760;2° B;2026-039;;24/12/2012;Benítez;Lorena;25334204;lorena.benitez@example.com;261 000-7021;Madre
+Videla;Thiago;53121779;2° B;2026-040;;26/03/2012;Suárez;Vanina;32341644;vanina.suarez@example.com;261 000-2486;Madre
+Videla;Thiago;53121779;2° B;2026-040;;26/03/2012;Videla;Ezequiel;30765137;ezequiel.videla@example.com;261 000-6326;Padre
+Correa;Juan Cruz Felipe;52820552;3° A;2026-041;;28/05/2011;Ortiz;Natalia;32223280;natalia.ortiz@example.com;261 000-4519;Madre
+Romero;Simón;52556565;3° A;2026-042;;05/03/2011;Aguirre;Silvina;32919886;silvina.aguirre@example.com;261 000-7422;Madre
+Quiroga;Bautista;49724994;3° A;2026-043;;25/03/2011;Quiroga;Carla;26703780;carla.quiroga@example.com;261 000-5904;Madre
+Quiroga;Bautista;49724994;3° A;2026-043;;25/03/2011;Quiroga;Javier;24335198;javier.quiroga@example.com;261 000-5383;Padre
+Funes;Lorenzo;50861065;3° A;2026-044;;05/12/2011;Videla;Laura;27044039;laura.videla@example.com;261 000-4619;Madre
+López;Ramiro Lisandro;51316687;3° A;2026-045;;07/03/2011;López;Marisa;33821936;marisa.lopez@example.com;261 000-5214;Madre
+Luna;Victoria;51844686;3° A;2026-046;;20/08/2011;Luna;Andrea;30990266;andrea.luna@example.com;261 000-7913;Madre
+Luna;Victoria;51844686;3° A;2026-046;;20/08/2011;Luna;Federico;29707230;federico.luna@example.com;261 000-6950;Padre
+Peralta;Abril Emma;52218717;3° A;2026-047;;21/05/2011;Peralta;Sergio;24887725;sergio.peralta@example.com;261 000-4335;Padre
+González;Lola;49702312;3° A;2026-048;;23/11/2011;Ríos;Paula;27942204;paula.rios@example.com;261 000-8998;Madre
+González;Lola;49702312;3° A;2026-048;;23/11/2011;González;Diego;23802926;diego.gonzalez@example.com;261 000-3359;Padre
+Bustos;Thiago;49794651;3° A;2026-049;;17/08/2011;Bustos;Lorena;27803945;lorena.bustos@example.com;261 000-9947;Madre
+Bustos;Thiago;49794651;3° A;2026-049;;17/08/2011;Bustos;Ezequiel;35773516;ezequiel.bustos@example.com;261 000-9688;Padre
+Pizarro;Thiago;53109102;3° A;2026-050;;09/01/2011;Ríos;Analía;30030089;analia.rios2@example.com;261 000-9860;Madre
+Martínez;Valentino;51177883;3° B;2026-051;;08/09/2011;Correa;Natalia;34288284;natalia.correa@example.com;261 000-6487;Madre
+Fernández;Juan Cruz;50088410;3° B;2026-052;;10/04/2011;Ramírez;Daniela;34251376;daniela.ramirez2@example.com;261 000-1557;Tutora legal
+Ibáñez;Felipe;51826414;3° B;2026-053;;06/08/2011;Ibáñez;Ricardo;30724276;ricardo.ibanez@example.com;261 000-3725;Padre
+Herrera;Pilar;51181567;3° B;2026-054;;01/04/2011;Gómez;Lorena;33565090;lorena.gomez@example.com;261 000-9440;Madre
+Herrera;Pilar;51181567;3° B;2026-054;;01/04/2011;Herrera;Marcelo;29598748;marcelo.herrera@example.com;261 000-3999;Padre
+Álvarez;Jazmín;50296931;3° B;2026-055;;21/11/2011;Ojeda;Lorena;30648467;lorena.ojeda@example.com;261 000-1567;Tutora legal
+González;Bautista;50670725;3° B;2026-056;;07/01/2011;González;Analía;29687780;analia.gonzalez@example.com;261 000-9567;Madre
+Núñez;Agustina;51751332;3° B;2026-057;;13/08/2011;Martínez;Eugenia;24811798;eugenia.martinez2@example.com;261 000-9969;Madre
+Molina;Paulina;51350245;3° B;2026-058;;22/10/2011;Molina;Gustavo;25013575;gustavo.molina@example.com;261 000-6155;Padre
+Ponce;Constanza Milagros;53118318;3° B;2026-059;;17/04/2011;Ponce;Gabriela;28708034;gabriela.ponce@example.com;261 000-5569;Madre
+Ojeda;Simón;51255858;3° B;2026-060;;22/10/2011;Ojeda;Gabriela;24947862;gabriela.ojeda@example.com;261 000-9109;Madre

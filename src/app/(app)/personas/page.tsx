@@ -82,7 +82,7 @@ export default async function PersonasPage({ searchParams }: { searchParams: Pro
         actions={
           <>
             <LinkButton href="/personas/importar" variant="secondary">
-              Importar alumnos
+              Importar personas
             </LinkButton>
             <LinkButton href="/personas/nueva">Nueva persona</LinkButton>
           </>

@@ -51,28 +51,43 @@ export function normalizeHeader(header: string): string {
     correo: "email",
     tutor_mail: "tutor_email",
     tutor_correo: "tutor_email",
+    roles: "rol",
+    cargo: "rol",
+    curso_a_cargo: "cursos",
+    cursos_a_cargo: "cursos",
   };
   return aliases[key] ?? key;
 }
 
 export type RawRecord = { line: number; values: Partial<Record<ImportColumn, string>> };
 
-/** Primera fila = encabezados. Ignora filas vacías. `line` es el número de fila en la planilla. */
-export function rowsToRecords(rows: string[][]): { records: RawRecord[]; missingColumns: string[] } {
+/**
+ * Lee una planilla con las columnas indicadas. Primera fila = encabezados (en
+ * cualquier orden). Ignora filas vacías. `line` es el número de fila en la planilla.
+ */
+export function readRecords<K extends string>(
+  rows: string[][],
+  columns: readonly { key: K; required: boolean }[],
+): { records: { line: number; values: Partial<Record<K, string>> }[]; missingColumns: string[] } {
   const [header = [], ...body] = rows;
   const keys = header.map((cell) => normalizeHeader(String(cell ?? "")));
-  const missingColumns = IMPORT_COLUMNS.filter((col) => col.required && !keys.includes(col.key)).map((col) => col.key);
+  const missingColumns = columns.filter((col) => col.required && !keys.includes(col.key)).map((col) => col.key);
 
-  const records: RawRecord[] = [];
+  const records: { line: number; values: Partial<Record<K, string>> }[] = [];
   body.forEach((row, index) => {
     if (row.every((cell) => !String(cell ?? "").trim())) return;
-    const values: RawRecord["values"] = {};
+    const values: Partial<Record<K, string>> = {};
     keys.forEach((key, col) => {
-      if (IMPORT_COLUMNS.some((c) => c.key === key)) values[key as ImportColumn] = String(row[col] ?? "").trim();
+      if (columns.some((c) => c.key === key)) values[key as K] = String(row[col] ?? "").trim();
     });
     records.push({ line: index + 2, values });
   });
   return { records, missingColumns };
+}
+
+/** Planilla de alumnos y familias. */
+export function rowsToRecords(rows: string[][]): { records: RawRecord[]; missingColumns: string[] } {
+  return readRecords(rows, IMPORT_COLUMNS);
 }
 
 export function parseRelationship(value: string | undefined): GuardianRelationship {
