@@ -31,7 +31,7 @@ const STAFF: Role[] = ["SUPERADMIN", "DIRECTIVO", "ADMINISTRATIVO"];
 export const NAV_ITEMS: NavItem[] = [
   { href: "/inicio", label: "Inicio", icon: Home, available: true },
   { href: "/notas", label: "Notas", icon: BookOpen, available: true },
-  { href: "/asistencia", label: "Asistencia", icon: ClipboardCheck, available: false },
+  { href: "/asistencia", label: "Asistencia", icon: ClipboardCheck, available: true },
   { href: "/comunicados", label: "Comunicados", icon: Megaphone, available: false },
   { href: "/mensajes", label: "Mensajes", icon: MessageCircle, available: false },
   { href: "/convivencia", label: "Convivencia", icon: ShieldAlert, available: false },

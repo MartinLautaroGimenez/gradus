@@ -32,6 +32,7 @@ async function main() {
 
   console.log("Limpiando base…");
   await db.$transaction([
+    db.attendanceRecord.deleteMany(),
     db.grade.deleteMany(),
     db.assessment.deleteMany(),
     db.enrollment.deleteMany(),
@@ -141,6 +142,8 @@ async function main() {
 
   console.log("Cargando notas…");
   await seedGrades(year.id);
+  console.log("Cargando asistencia…");
+  await seedAttendance(year.id);
 
   console.log(`Listo. Contraseña de todos los usuarios: ${PASSWORD}`);
 }
@@ -200,6 +203,39 @@ async function seedGrades(academicYearId: string) {
     }
   }
   await db.gradingPeriod.update({ where: { id: first.id }, data: { closed: true } });
+}
+
+/** Asistencia de marzo a principios de octubre; algunos alumnos cerca del tope. */
+async function seedAttendance(academicYearId: string) {
+  const rand = random(7);
+  const enrollments = await db.enrollment.findMany({
+    where: { course: { academicYearId } },
+    orderBy: [{ courseId: "asc" }, { listNumber: "asc" }],
+  });
+  const days: Date[] = [];
+  for (let d = new Date("2026-03-02"); d <= new Date("2026-10-09"); d = new Date(d.getTime() + 86400000)) {
+    const weekday = d.getUTCDay();
+    // Sin fines de semana ni receso invernal.
+    if (weekday !== 0 && weekday !== 6 && !(d >= new Date("2026-07-13") && d <= new Date("2026-07-24"))) days.push(d);
+  }
+  const data = enrollments.flatMap((enrollment, i) => {
+    const frequent = i % 8 === 3; // un alumno por curso falta seguido
+    return days.map((date) => {
+      const x = rand();
+      const absentRate = frequent ? 0.11 : 0.035;
+      const status =
+        x < absentRate ? "AUSENTE" : x < absentRate + 0.03 ? "TARDE" : x < absentRate + 0.04 ? "RETIRO" : "PRESENTE";
+      const justified = status === "AUSENTE" && rand() < 0.3;
+      return {
+        enrollmentId: enrollment.id,
+        date,
+        status: status as "AUSENTE" | "TARDE" | "RETIRO" | "PRESENTE",
+        justified,
+        note: justified ? "Certificado médico" : null,
+      };
+    });
+  });
+  await db.attendanceRecord.createMany({ data });
 }
 
 main()

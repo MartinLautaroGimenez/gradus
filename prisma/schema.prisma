@@ -17,15 +17,20 @@ datasource db {
 
 /// Datos y configuración de la escuela. Por ahora hay una sola fila.
 model School {
-  id            String  @id @default(cuid())
-  name          String
-  shortName     String
+  id              String  @id @default(cuid())
+  name            String
+  shortName       String
   /// Nota mínima de aprobación (escala 1 a 10).
-  passingGrade  Decimal @default(7) @db.Decimal(4, 2)
+  passingGrade    Decimal @default(7) @db.Decimal(4, 2)
   /// Decimales con los que se muestran y redondean los promedios.
-  gradeDecimals Int     @default(2)
+  gradeDecimals   Int     @default(2)
   /// Tope de inasistencias por ciclo lectivo antes de quedar libre.
-  maxAbsences   Int     @default(20)
+  maxAbsences     Int     @default(20)
+  /// Cuánto suma cada llegada tarde y cada retiro anticipado (1 = una falta).
+  lateValue       Decimal @default(0.25) @db.Decimal(3, 2)
+  earlyLeaveValue Decimal @default(0.5) @db.Decimal(3, 2)
+  /// Si las inasistencias justificadas suman para el tope.
+  justifiedCount  Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -68,9 +73,10 @@ model User {
 
   studentProfile      Student?
   guardianOf          StudentGuardian[]
-  preceptorOfCourses  Course[]          @relation("CoursePreceptor")
-  teachingAssignments CourseSubject[]   @relation("CourseSubjectTeacher")
+  preceptorOfCourses  Course[]           @relation("CoursePreceptor")
+  teachingAssignments CourseSubject[]    @relation("CourseSubjectTeacher")
   gradesUpdated       Grade[]
+  attendanceRecorded  AttendanceRecord[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -265,7 +271,8 @@ model Enrollment {
   /// Número de orden en la lista del curso.
   listNumber Int?
 
-  grades Grade[]
+  grades     Grade[]
+  attendance AttendanceRecord[]
 
   createdAt DateTime @default(now())
 
@@ -326,4 +333,36 @@ model Grade {
 
   @@unique([assessmentId, enrollmentId])
   @@index([enrollmentId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Asistencia
+// ─────────────────────────────────────────────────────────────
+
+enum AttendanceStatus {
+  PRESENTE
+  AUSENTE
+  TARDE
+  /// Retiro anticipado
+  RETIRO
+}
+
+/// Asistencia diaria de un alumno. Se guarda una fila por alumno cada día
+/// que se toma lista (también los presentes), así se distingue "presente"
+/// de "no se tomó lista".
+model AttendanceRecord {
+  id           String           @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment       @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  date         DateTime         @db.Date
+  status       AttendanceStatus
+  justified    Boolean          @default(false)
+  note         String?
+
+  recordedById String?
+  recordedBy   User?    @relation(fields: [recordedById], references: [id], onDelete: SetNull)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([enrollmentId, date])
+  @@index([date])
 }

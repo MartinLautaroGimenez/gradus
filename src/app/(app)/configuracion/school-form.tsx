@@ -10,7 +10,11 @@ import { useFormAction } from "@/lib/use-form-action";
 import type { FormState } from "@/lib/validation";
 import { updateSchool } from "./actions";
 
-type SchoolData = Pick<School, "name" | "shortName" | "gradeDecimals" | "maxAbsences"> & { passingGrade: number };
+type SchoolData = Pick<School, "name" | "shortName" | "gradeDecimals" | "maxAbsences" | "justifiedCount"> & {
+  passingGrade: number;
+  lateValue: number;
+  earlyLeaveValue: number;
+};
 
 export function SchoolForm({ school }: { school: SchoolData | null }) {
   const [state, onSubmit, pending] = useFormAction<FormState>(updateSchool, {});
@@ -51,6 +55,22 @@ export function SchoolForm({ school }: { school: SchoolData | null }) {
       >
         <Input id="maxAbsences" name="maxAbsences" type="number" min={1} defaultValue={school?.maxAbsences ?? 20} required />
       </Field>
+      <Field label="Llegada tarde equivale a" htmlFor="lateValue" error={errors.lateValue} hint="Fracción de falta (0,25 = un cuarto)">
+        <Input id="lateValue" name="lateValue" inputMode="decimal" defaultValue={String(school?.lateValue ?? 0.25).replace(".", ",")} required />
+      </Field>
+      <Field label="Retiro anticipado equivale a" htmlFor="earlyLeaveValue" error={errors.earlyLeaveValue} hint="Fracción de falta (0,5 = media)">
+        <Input
+          id="earlyLeaveValue"
+          name="earlyLeaveValue"
+          inputMode="decimal"
+          defaultValue={String(school?.earlyLeaveValue ?? 0.5).replace(".", ",")}
+          required
+        />
+      </Field>
+      <label className="flex items-center gap-2 text-sm sm:col-span-2">
+        <input type="checkbox" name="justifiedCount" defaultChecked={school?.justifiedCount ?? true} className="size-4" />
+        Las inasistencias justificadas suman para el tope
+      </label>
       <div className="flex items-center gap-3 sm:col-span-2">
         <SubmitButton pending={pending}>Guardar</SubmitButton>
         <FormMessage state={state} />

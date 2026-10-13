@@ -15,11 +15,17 @@ const schoolSchema = z.object({
   passingGrade: z.coerce.number().min(1, "Entre 1 y 10").max(10, "Entre 1 y 10"),
   gradeDecimals: z.coerce.number().int().min(0).max(2),
   maxAbsences: z.coerce.number().int("Número entero").min(1, "Debe ser mayor a 0"),
+  lateValue: z.coerce.number().min(0, "Entre 0 y 1").max(1, "Entre 0 y 1"),
+  earlyLeaveValue: z.coerce.number().min(0, "Entre 0 y 1").max(1, "Entre 0 y 1"),
+  justifiedCount: z.literal("on").optional().transform((v) => v === "on"),
 });
 
 export async function updateSchool(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireRole(CONFIG_ROLES);
-  const parsed = schoolSchema.safeParse(Object.fromEntries(formData));
+  const parsed = schoolSchema.safeParse(
+    // Se acepta coma decimal ("0,25").
+    Object.fromEntries([...formData].map(([k, v]) => [k, typeof v === "string" ? v.replace(",", ".") : v])),
+  );
   if (!parsed.success) return fromZodError(parsed.error);
 
   const school = await db.school.findFirst();

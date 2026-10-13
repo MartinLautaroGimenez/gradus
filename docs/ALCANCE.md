@@ -76,7 +76,7 @@ también es padre de un alumno) y ve lo que corresponde a cada uno.
 | **Gestión académica** | Ciclos lectivos, períodos, materias, cursos y divisiones, asignación de docentes y preceptores | ✅ 2 |
 | **Personas y legajos** | Alta y edición de alumnos, familias y personal; matrículas; vínculos familiares; carga masiva desde planillas | ✅ 2 |
 | **Calificaciones** | Planilla tipo Excel por materia y período, promedios ponderados, cierre de período, instancias de diciembre y febrero, exportación a Excel, vista de notas para alumnos y familias | ✅ 3 |
-| **Asistencia** | Toma diaria del preceptor, asistencia por materia, llegadas tarde, justificaciones, alertas al acercarse al tope de 20 faltas | 4 |
+| **Asistencia** | Lista diaria del preceptor (con teclado), llegadas tarde y retiros, justificaciones, planilla mensual exportable, alertas al acercarse al tope | ✅ 4 |
 | **Comunicados** | Circulares por escuela, curso o rol, adjuntos, confirmación de lectura ("notificado"), seguimiento de quién no leyó | 5 |
 | **Notificaciones** | Bandeja dentro de la app, push (PWA) y email, con preferencias por usuario | 5 |
 | **Mensajería** | Chat familia ↔ docente, preceptor o directivo, con reglas de quién puede escribir a quién | 6 |
@@ -98,7 +98,7 @@ punta: modelo de datos, pantallas, permisos y tests.
    planillas.
 3. ✅ **Calificaciones:** planilla tipo Excel, resultado final por materia y
    vista para alumnos y familias.
-4. **Asistencia.**
+4. ✅ **Asistencia.**
 5. **Comunicados y notificaciones.**
 6. **Mensajería y convivencia.**
 7. **Calendario y autorizaciones.**
@@ -156,6 +156,23 @@ Si alguien quita una materia de un curso o un alumno de una lista, sus notas
 se borrarían en cascada. Por eso, si ya hay notas, el sistema no lo permite y
 pide cambiar el estado del alumno a Pase o Baja.
 
+## Asistencia
+
+- El preceptor del curso (o la dirección/administración) toma lista una vez
+  por día. La lista arranca con todos presentes: sólo se marcan las
+  excepciones. Teclado: ↑ ↓ para moverse, P / A / T / R para marcar, J para
+  justificar.
+- Ausente = 1 falta; llegada tarde y retiro anticipado suman la fracción que
+  se configure (por defecto ¼ y ½). Si las justificadas suman para el tope
+  también es configurable (por defecto sí).
+- Alertas: "Atención" desde el 75 % del tope, "Cerca del tope" desde el 90 %
+  y "Superó el tope" al llegar a 20.
+- Planilla mensual por curso (como el registro en papel) con descarga a Excel.
+- Alumnos y familias ven el total, la barra hasta el tope y el detalle de
+  cada inasistencia con su motivo.
+- Se guarda una fila por alumno y día (también los presentes) para distinguir
+  "presente" de "no se tomó lista".
+
 ## Cuentas y contraseñas
 
 - Todas las personas se identifican por su **DNI**; el email es opcional.
@@ -175,5 +192,5 @@ pide cambiar el estado del alumno a Pase o Baja.
 - Si además del promedio anual hace falta aprobar el 2° cuatrimestre.
 
 - Tipos de sanción del régimen de convivencia (se definen antes de la etapa 6).
-- Cómo cuentan las llegadas tarde y las faltas por materia respecto del tope
-  de 20 inasistencias (antes de la etapa 4).
+- Valor de la llegada tarde y del retiro anticipado (hoy ¼ y ½, configurable).
+- Si se toma asistencia por materia además de la diaria (hoy sólo diaria).

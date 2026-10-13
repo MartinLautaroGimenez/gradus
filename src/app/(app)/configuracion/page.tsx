@@ -30,7 +30,18 @@ export default async function ConfiguracionPage() {
           <CardTitle>Escuela</CardTitle>
           <CardDescription>Estos valores se usan en el cálculo de promedios y en las alertas de asistencia.</CardDescription>
         </div>
-        <SchoolForm school={school ? { ...school, passingGrade: Number(school.passingGrade) } : null} />
+        <SchoolForm
+          school={
+            school
+              ? {
+                  ...school,
+                  passingGrade: Number(school.passingGrade),
+                  lateValue: Number(school.lateValue),
+                  earlyLeaveValue: Number(school.earlyLeaveValue),
+                }
+              : null
+          }
+        />
       </Card>
 
       <section className="flex flex-col gap-3">
