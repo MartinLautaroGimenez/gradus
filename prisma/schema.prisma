@@ -75,8 +75,8 @@ model User {
 
   studentProfile        Student?
   guardianOf            StudentGuardian[]
-  preceptorOfCourses    Course[]                @relation("CoursePreceptor")
-  teachingAssignments   CourseSubject[]         @relation("CourseSubjectTeacher")
+  preceptorOfCourses    Course[]                  @relation("CoursePreceptor")
+  teachingAssignments   CourseSubject[]           @relation("CourseSubjectTeacher")
   gradesUpdated         Grade[]
   attendanceRecorded    AttendanceRecord[]
   notifications         Notification[]
@@ -84,6 +84,10 @@ model User {
   announcements         Announcement[]
   announcementsReceived AnnouncementRecipient[]
   attachmentsUploaded   Attachment[]
+  conversations         ConversationParticipant[]
+  messagesSent          Message[]
+  incidentsCreated      Incident[]
+  incidentSignatures    IncidentSignature[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -281,6 +285,7 @@ model Enrollment {
 
   grades     Grade[]
   attendance AttendanceRecord[]
+  incidents  Incident[]
 
   createdAt DateTime @default(now())
 
@@ -483,4 +488,92 @@ model Attachment {
   announcementId String?
   announcement   Announcement? @relation(fields: [announcementId], references: [id], onDelete: Cascade)
   createdAt      DateTime      @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────
+// Mensajería
+// ─────────────────────────────────────────────────────────────
+
+/// Conversación privada entre dos personas.
+model Conversation {
+  id            String                    @id @default(cuid())
+  createdAt     DateTime                  @default(now())
+  /// Fecha del último mensaje (para ordenar la bandeja).
+  lastMessageAt DateTime                  @default(now())
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  @@index([lastMessageAt])
+}
+
+model ConversationParticipant {
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Hasta cuándo leyó: los mensajes posteriores de la otra persona son "no leídos".
+  lastReadAt     DateTime?
+
+  @@id([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String?
+  sender         User?        @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  body           String
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Convivencia
+// ─────────────────────────────────────────────────────────────
+
+enum IncidentKind {
+  RECONOCIMIENTO
+  OBSERVACION
+  LLAMADO_ATENCION
+  APERCIBIMIENTO
+  ACTA
+  SUSPENSION
+}
+
+/// Registro de convivencia de un alumno: desde una observación o un
+/// reconocimiento hasta una sanción. Las sanciones requieren que la familia
+/// firme que se notificó.
+model Incident {
+  id                String       @id @default(cuid())
+  enrollmentId      String
+  enrollment        Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  kind              IncidentKind
+  date              DateTime     @db.Date
+  description       String
+  /// Acciones reparadoras o medidas acordadas.
+  measures          String?
+  requiresSignature Boolean      @default(true)
+  createdById       String?
+  createdBy         User?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt         DateTime     @default(now())
+
+  signatures IncidentSignature[]
+
+  @@index([enrollmentId])
+  @@index([date])
+}
+
+/// Firma (notificación) de un adulto responsable, con su comentario opcional.
+model IncidentSignature {
+  incidentId String
+  incident   Incident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment    String?
+  signedAt   DateTime @default(now())
+
+  @@id([incidentId, userId])
 }

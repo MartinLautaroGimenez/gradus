@@ -6,7 +6,17 @@ import type { Role } from "@prisma/client";
 import { Logo } from "@/components/logo";
 import { NavLinks } from "./nav-links";
 
-export function MobileNav({ roles, footer, bell }: { roles: Role[]; footer: React.ReactNode; bell: React.ReactNode }) {
+export function MobileNav({
+  roles,
+  badges,
+  footer,
+  bell,
+}: {
+  roles: Role[];
+  badges: Record<string, number>;
+  footer: React.ReactNode;
+  bell: React.ReactNode;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -42,7 +52,7 @@ export function MobileNav({ roles, footer, bell }: { roles: Role[]; footer: Reac
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <NavLinks roles={roles} onNavigate={() => setOpen(false)} />
+              <NavLinks roles={roles} badges={badges} onNavigate={() => setOpen(false)} />
             </div>
             {footer}
           </div>

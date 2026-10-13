@@ -6,7 +6,16 @@ import type { Role } from "@prisma/client";
 import { navItemsFor } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
-export function NavLinks({ roles, onNavigate }: { roles: Role[]; onNavigate?: () => void }) {
+export function NavLinks({
+  roles,
+  badges = {},
+  onNavigate,
+}: {
+  roles: Role[];
+  /** Contadores por ruta (por ejemplo, mensajes sin leer). */
+  badges?: Record<string, number>;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   return (
@@ -37,7 +46,12 @@ export function NavLinks({ roles, onNavigate }: { roles: Role[]; onNavigate?: ()
             )}
           >
             <Icon className="size-4.5" aria-hidden />
-            {label}
+            <span className="flex-1">{label}</span>
+            {!!badges[href] && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+                {badges[href] > 99 ? "99+" : badges[href]}
+              </span>
+            )}
           </Link>
         );
       })}

@@ -79,8 +79,8 @@ también es padre de un alumno) y ve lo que corresponde a cada uno.
 | **Asistencia** | Lista diaria del preceptor (con teclado), llegadas tarde y retiros, justificaciones, planilla mensual exportable, alertas al acercarse al tope | ✅ 4 |
 | **Comunicados** | Circulares por escuela, curso o rol, adjuntos, confirmación de lectura ("notificado"), seguimiento de quién no leyó y recordatorios | ✅ 5 |
 | **Notificaciones** | Bandeja con campana, push (PWA) y email opcional, con registro de entrega | ✅ 5 |
-| **Mensajería** | Chat familia ↔ docente, preceptor o directivo, con reglas de quién puede escribir a quién | 6 |
-| **Convivencia** | Observaciones, sanciones y actas (las aplican preceptores y directivos), notificación y firma de la familia | 6 |
+| **Mensajería** | Chat familia ↔ docente, preceptor o directivo, con reglas de quién puede escribir a quién | ✅ 6 |
+| **Convivencia** | Observaciones, reconocimientos y sanciones (las aplican preceptores y directivos), firma de la familia con comentario | ✅ 6 |
 | **Calendario** | Evaluaciones, actos, feriados y eventos por curso | 7 |
 | **Autorizaciones** | Salidas educativas y permisos con firma digital de la familia | 7 |
 | **Reportes** | Rendimiento por curso y materia, ausentismo, alumnos en riesgo | 8 |
@@ -100,7 +100,7 @@ punta: modelo de datos, pantallas, permisos y tests.
    vista para alumnos y familias.
 4. ✅ **Asistencia.**
 5. ✅ **Comunicados y notificaciones.**
-6. **Mensajería y convivencia.**
+6. ✅ **Mensajería y convivencia.**
 7. **Calendario y autorizaciones.**
 8. **Reportes.**
 
@@ -192,6 +192,33 @@ pide cambiar el estado del alumno a Pase o Baja.
   ausente ese día, y a la familia y al alumno cuando cruza un umbral de
   inasistencias.
 
+## Mensajería
+
+Conversaciones privadas de a dos. Quién le puede escribir a quién:
+
+| Persona | Puede escribirle a |
+|---|---|
+| Dirección y administración | Cualquiera |
+| Docentes y preceptores | Personal, otros docentes y preceptores, alumnos de sus cursos y sus familias |
+| Familias | Docentes y preceptor de sus hijos, dirección y administración |
+| Alumnos | Sus docentes y su preceptor |
+
+Nunca entre familias ni entre alumnos. Enter envía, Shift+Enter hace un salto
+de línea. Se ve "Leído" cuando la otra persona abrió la conversación. Llega un
+aviso por conversación (no uno por mensaje) mientras no se lea.
+
+## Convivencia
+
+- Tipos: reconocimiento, observación, llamado de atención, apercibimiento,
+  acta y suspensión.
+- Registran: el preceptor del curso y la dirección (cualquier tipo); los
+  docentes del curso sólo observaciones y reconocimientos.
+- Las sanciones piden por defecto la firma de la familia, que confirma que se
+  notificó y puede dejar un comentario o descargo (llega como aviso a quien
+  registró).
+- Ven el registro: el alumno, su familia, el preceptor y los docentes del
+  curso, y el personal.
+
 ## Cuentas y contraseñas
 
 - Todas las personas se identifican por su **DNI**; el email es opcional.
@@ -210,6 +237,7 @@ pide cambiar el estado del alumno a Pase o Baja.
 - Si un ausente en una evaluación cuenta como 1 o no cuenta (hoy no cuenta).
 - Si además del promedio anual hace falta aprobar el 2° cuatrimestre.
 
-- Tipos de sanción del régimen de convivencia (se definen antes de la etapa 6).
+- Tipos de sanción del régimen de convivencia (hoy: llamado de atención,
+  apercibimiento, acta y suspensión) y si los docentes pueden aplicar alguna.
 - Valor de la llegada tarde y del retiro anticipado (hoy ¼ y ½, configurable).
 - Si se toma asistencia por materia además de la diaria (hoy sólo diaria).

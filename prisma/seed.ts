@@ -32,6 +32,8 @@ async function main() {
 
   console.log("Limpiando base…");
   await db.$transaction([
+    db.incident.deleteMany(),
+    db.conversation.deleteMany(),
     db.notification.deleteMany(),
     db.attachment.deleteMany(),
     db.announcement.deleteMany(),
@@ -164,6 +166,8 @@ async function main() {
   await seedAttendance(year.id);
   console.log("Cargando comunicados…");
   await seedAnnouncements();
+  console.log("Cargando mensajes y convivencia…");
+  await seedMessagesAndIncidents();
 
   console.log(`Listo. Contraseña de todos los usuarios: ${PASSWORD}`);
 }
@@ -312,6 +316,65 @@ async function seedAnnouncements() {
         link: `/comunicados/${trip.id}`,
         createdAt: trip.createdAt,
       })),
+    ],
+  });
+}
+
+async function seedMessagesAndIncidents() {
+  const family = await db.user.findUniqueOrThrow({ where: { email: "familia@gradus.local" } });
+  const teacher = await db.user.findUniqueOrThrow({ where: { email: "docente@gradus.local" } });
+  const preceptor = await db.user.findUniqueOrThrow({ where: { email: "preceptor@gradus.local" } });
+  const conversation = await db.conversation.create({
+    data: {
+      lastMessageAt: new Date("2026-10-08T14:20:00Z"),
+      participants: {
+        create: [
+          { userId: family.id, lastReadAt: new Date("2026-10-08T14:20:00Z") },
+          { userId: teacher.id, lastReadAt: new Date("2026-10-08T13:00:00Z") },
+        ],
+      },
+    },
+  });
+  await db.message.createMany({
+    data: [
+      { conversationId: conversation.id, senderId: family.id, body: "Hola profe, ¿qué temas entran en el parcial de Matemática?", createdAt: new Date("2026-10-08T12:10:00Z") },
+      { conversationId: conversation.id, senderId: teacher.id, body: "Hola! Entran ecuaciones y proporcionalidad. El martes repasamos en clase.", createdAt: new Date("2026-10-08T13:00:00Z") },
+      { conversationId: conversation.id, senderId: family.id, body: "Perfecto, muchas gracias.", createdAt: new Date("2026-10-08T14:20:00Z") },
+    ],
+  });
+
+  const enrollments = await db.enrollment.findMany({
+    where: { course: { grade: 1, division: "A" } },
+    orderBy: { listNumber: "asc" },
+    take: 4,
+  });
+  await db.incident.createMany({
+    data: [
+      {
+        enrollmentId: enrollments[3].id,
+        kind: "APERCIBIMIENTO",
+        date: new Date("2026-10-06"),
+        description: "Uso reiterado del celular en clase luego de dos advertencias.",
+        measures: "Se conversó con el alumno. Deberá presentar una reflexión escrita sobre el acuerdo de convivencia.",
+        requiresSignature: true,
+        createdById: preceptor.id,
+      },
+      {
+        enrollmentId: enrollments[0].id,
+        kind: "RECONOCIMIENTO",
+        date: new Date("2026-09-25"),
+        description: "Ayudó a sus compañeros a organizar la feria de ciencias.",
+        requiresSignature: false,
+        createdById: teacher.id,
+      },
+      {
+        enrollmentId: enrollments[1].id,
+        kind: "LLAMADO_ATENCION",
+        date: new Date("2026-10-02"),
+        description: "Llegó tarde tres veces en la semana sin justificación.",
+        requiresSignature: true,
+        createdById: preceptor.id,
+      },
     ],
   });
 }

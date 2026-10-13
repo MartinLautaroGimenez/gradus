@@ -5,11 +5,16 @@ import { UserMenu } from "@/components/app-shell/user-menu";
 import { Logo } from "@/components/logo";
 import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { unreadMessageCount } from "@/lib/messaging/contacts";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const userMenu = <UserMenu user={user} />;
-  const unread = await db.notification.count({ where: { userId: user.id, readAt: null } });
+  const [unread, unreadMessages] = await Promise.all([
+    db.notification.count({ where: { userId: user.id, readAt: null } }),
+    unreadMessageCount(user.id),
+  ]);
+  const badges = { "/mensajes": unreadMessages };
 
   return (
     <div className="md:flex">
@@ -19,11 +24,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NotificationBell initialUnread={unread} />
         </div>
         <div className="flex-1 overflow-y-auto">
-          <NavLinks roles={user.roles} />
+          <NavLinks roles={user.roles} badges={badges} />
         </div>
         {userMenu}
       </aside>
-      <MobileNav roles={user.roles} footer={userMenu} bell={<NotificationBell initialUnread={unread} />} />
+      <MobileNav roles={user.roles} badges={badges} footer={userMenu} bell={<NotificationBell initialUnread={unread} />} />
       <main className="min-w-0 flex-1 px-4 py-6 md:px-8 md:py-8">
         <div className="mx-auto max-w-5xl">{children}</div>
       </main>
