@@ -46,8 +46,9 @@ Abrir http://localhost:3000.
 ### Usuarios de prueba
 
 Todos con contraseña `gradus123`. También se puede ingresar con el DNI.
-Las cuentas que se creen desde la aplicación usan el DNI como contraseña
-inicial y piden cambiarla en el primer ingreso.
+Las cuentas que se creen desde la aplicación reciben una contraseña inicial al
+azar (se muestra una sola vez) y piden cambiarla en el primer ingreso. Ver
+[docs/SEGURIDAD.md](docs/SEGURIDAD.md).
 
 | Email | Rol |
 |---|---|

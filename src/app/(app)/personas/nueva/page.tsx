@@ -21,7 +21,7 @@ export default async function NuevaPersonaPage() {
     <div>
       <PageHeader
         title="Nueva persona"
-        description="La contraseña inicial es el DNI; se le pide cambiarla en el primer ingreso."
+        description="Se genera una contraseña inicial al azar que se muestra al crear la cuenta; se le pide cambiarla en el primer ingreso."
         back={{ href: "/personas", label: "Personas" }}
       />
       <Card>

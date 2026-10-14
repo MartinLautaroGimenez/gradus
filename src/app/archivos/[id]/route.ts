@@ -1,12 +1,12 @@
 import { STAFF_ROLES, hasAnyRole } from "@/lib/auth/roles";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getReadyUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { readStored } from "@/lib/storage";
 
 /** Descarga de adjuntos con control de permisos. */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getCurrentUser();
-  if (!user || user.mustChangePassword) return new Response("No autorizado", { status: 401 });
+  const user = await getReadyUser();
+  if (!user) return new Response("No autorizado", { status: 401 });
   const { id } = await params;
 
   const file = await db.attachment.findUnique({ where: { id }, include: { announcement: true } });
@@ -31,6 +31,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       "Content-Length": String(file.size),
       "Content-Disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(file.fileName)}`,
       "X-Content-Type-Options": "nosniff",
+      // Aunque un archivo tuviera código, el navegador no lo ejecuta. (El visor de
+      // PDF de Chrome no abre en modo sandbox; los PDF ya se validan por contenido.)
+      ...(file.mimeType === "application/pdf"
+        ? {}
+        : { "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox" }),
       "Cache-Control": "private, max-age=3600",
     },
   });

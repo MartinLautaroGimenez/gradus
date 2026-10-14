@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { MANAGE_ROLES, assignableRoles, canManageUser } from "@/lib/auth/permissions";
-import { ROLE_LABELS } from "@/lib/auth/roles";
+import { ROLE_LABELS, hasAnyRole } from "@/lib/auth/roles";
 import { requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { ENROLLMENT_STATUS_LABELS, RELATIONSHIP_LABELS, formatDni, toDateInput } from "@/lib/format";
@@ -16,25 +16,19 @@ import {
   addGuardian,
   removeGuardian,
   resetPassword,
+  resetTwoFactor,
   setUserActive,
   updatePerson,
   updateStudentFile,
 } from "../actions";
 import { PersonForm } from "../person-form";
-import { AddGuardianForm, ResetPasswordForm, StudentFileForm } from "./forms";
+import { AddGuardianForm, ResetPasswordForm, ResetTwoFactorForm, StudentFileForm } from "./forms";
 
 export const metadata: Metadata = { title: "Persona" };
 
-export default async function PersonaPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ creado?: string }>;
-}) {
+export default async function PersonaPage({ params }: { params: Promise<{ id: string }> }) {
   const actor = await requireRole(MANAGE_ROLES);
   const { id } = await params;
-  const { creado } = await searchParams;
 
   const person = await db.user.findUnique({
     where: { id },
@@ -91,11 +85,6 @@ export default async function PersonaPage({
         </Link>
       )}
 
-      {creado && (
-        <p role="status" className="rounded-lg bg-success-soft px-3 py-2 text-sm text-success">
-          Cuenta creada. Puede ingresar con su DNI como usuario y como contraseña; se le pedirá cambiarla.
-        </p>
-      )}
       {!editable && (
         <p className="rounded-lg bg-warning-soft px-3 py-2 text-sm text-warning">
           No tenés permiso para modificar a esta persona.
@@ -251,9 +240,13 @@ export default async function PersonaPage({
                 ? `Último ingreso: ${person.lastLoginAt.toLocaleString("es-AR", { timeZone: "America/Argentina/Mendoza" })}`
                 : "Todavía no ingresó nunca."}
               {person.mustChangePassword && " Tiene pendiente cambiar la contraseña inicial."}
+              {person.totpEnabledAt && " Usa verificación en dos pasos."}
             </CardDescription>
           </div>
           <ResetPasswordForm action={resetPassword.bind(null, person.id)} />
+          {person.totpEnabledAt && hasAnyRole(actor, ["SUPERADMIN", "DIRECTIVO"]) && (
+            <ResetTwoFactorForm action={resetTwoFactor.bind(null, person.id)} />
+          )}
           <form action={setUserActive.bind(null, person.id, !person.active)}>
             <SubmitButton
               variant="secondary"

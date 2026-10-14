@@ -17,20 +17,22 @@ datasource db {
 
 /// Datos y configuración de la escuela. Por ahora hay una sola fila.
 model School {
-  id              String  @id @default(cuid())
-  name            String
-  shortName       String
+  id                 String  @id @default(cuid())
+  name               String
+  shortName          String
   /// Nota mínima de aprobación (escala 1 a 10).
-  passingGrade    Decimal @default(7) @db.Decimal(4, 2)
+  passingGrade       Decimal @default(7) @db.Decimal(4, 2)
   /// Decimales con los que se muestran y redondean los promedios.
-  gradeDecimals   Int     @default(2)
+  gradeDecimals      Int     @default(2)
   /// Tope de inasistencias por ciclo lectivo antes de quedar libre.
-  maxAbsences     Int     @default(20)
+  maxAbsences        Int     @default(20)
   /// Cuánto suma cada llegada tarde y cada retiro anticipado (1 = una falta).
-  lateValue       Decimal @default(0.25) @db.Decimal(3, 2)
-  earlyLeaveValue Decimal @default(0.5) @db.Decimal(3, 2)
+  lateValue          Decimal @default(0.25) @db.Decimal(3, 2)
+  earlyLeaveValue    Decimal @default(0.5) @db.Decimal(3, 2)
   /// Si las inasistencias justificadas suman para el tope.
-  justifiedCount  Boolean @default(true)
+  justifiedCount     Boolean @default(true)
+  /// Exigir verificación en dos pasos a dirección, administración y administradores.
+  require2faForStaff Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -70,6 +72,12 @@ model User {
   mustChangePassword Boolean   @default(false)
   /// Recibir por email las notificaciones (además de la bandeja y el push).
   emailNotifications Boolean   @default(true)
+  passwordChangedAt  DateTime?
+  /// Secreto TOTP (verificación en dos pasos). Null = no activada.
+  totpSecret         String?
+  totpEnabledAt      DateTime?
+  /// Último paso de 30 s aceptado: un mismo código no sirve dos veces.
+  totpLastStep       Int?
 
   sessions Session[]
 
@@ -91,6 +99,9 @@ model User {
   eventsCreated         CalendarEvent[]
   authorizationsCreated AuthorizationRequest[]
   authorizationAnswers  AuthorizationResponse[]
+  recoveryCodes         RecoveryCode[]
+  loginChallenges       LoginChallenge[]
+  auditEntries          AuditLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -101,16 +112,62 @@ model User {
 /// Sesión de inicio de sesión. El navegador sólo guarda un token aleatorio;
 /// acá se guarda su hash SHA-256, nunca el token en claro.
 model Session {
-  id        String   @id @default(cuid())
-  tokenHash String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  userAgent String?
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  userAgent  String?
+  ip         String?
+  /// Última vez que se usó: las sesiones inactivas vencen antes.
+  lastUsedAt DateTime @default(now())
 
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+/// Código de recuperación de la verificación en dos pasos (un solo uso).
+model RecoveryCode {
+  id       String    @id @default(cuid())
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash String
+  usedAt   DateTime?
+
+  @@index([userId])
+}
+
+/// Ingreso a medio camino: la contraseña fue correcta y falta el código de
+/// verificación en dos pasos. Vence en pocos minutos.
+model LoginChallenge {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+/// Registro de auditoría: quién hizo qué y cuándo. Sólo se agrega, nunca se edita.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  /// Por ejemplo "login.ok", "notas.guardar", "persona.roles".
+  action    String
+  /// Entidad afectada (tipo e id), si corresponde.
+  entity    String?
+  entityId  String?
+  summary   String
+  details   Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId, createdAt])
+  @@index([entity, entityId])
 }
 
 // ─────────────────────────────────────────────────────────────

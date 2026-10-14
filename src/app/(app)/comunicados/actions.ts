@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { AUDIENCE_ROLES, canManageAnnouncement, resolveRecipients, sendingScope } from "@/lib/announcements/audience";
+import { audit } from "@/lib/audit";
+import { LIMITS, hit, minutesLeft } from "@/lib/auth/rate-limit";
 import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { notify } from "@/lib/notifications/notify";
@@ -24,6 +26,8 @@ export async function createAnnouncement(_prev: FormState, formData: FormData): 
   const user = await requireUser();
   const scope = await sendingScope(user);
   if (!scope) return { error: "No tenés permiso para enviar comunicados" };
+  const limitKey = `comunicados:${user.id}`;
+  if (!hit(limitKey, LIMITS.announcements)) return { error: `Enviaste muchos comunicados seguidos. Esperá ${minutesLeft(limitKey)} min.` };
 
   const parsed = schema.safeParse({
     title: formData.get("title"),
@@ -50,7 +54,7 @@ export async function createAnnouncement(_prev: FormState, formData: FormData): 
   const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
   if (files.length > MAX_ATTACHMENTS) return { error: `Máximo ${MAX_ATTACHMENTS} adjuntos` };
   for (const file of files) {
-    const problem = validateUpload(file);
+    const problem = await validateUpload(file);
     if (problem) return { error: problem, fieldErrors: { files: [problem] } };
   }
 
@@ -80,6 +84,13 @@ export async function createAnnouncement(_prev: FormState, formData: FormData): 
     throw error;
   }
 
+  await audit({
+    actorId: user.id,
+    action: "comunicado.enviar",
+    entity: "Announcement",
+    entityId: announcementId,
+    summary: `Envió el comunicado "${data.title}" a ${recipients.length} personas`,
+  });
   await notify(recipients, {
     kind: "COMUNICADO",
     title: data.requiresAck ? `Comunicado (requiere notificarse): ${data.title}` : `Comunicado: ${data.title}`,
@@ -127,6 +138,14 @@ export async function deleteAnnouncement(announcementId: string) {
   const announcement = await db.announcement.findUnique({ where: { id: announcementId }, include: { attachments: true } });
   if (!announcement || !(canManageAnnouncement(user, announcement.authorId))) return;
   await db.announcement.delete({ where: { id: announcementId } });
+  await audit({
+    actorId: user.id,
+    action: "comunicado.borrar",
+    entity: "Announcement",
+    entityId: announcementId,
+    summary: `Borró el comunicado "${announcement.title}"`,
+    details: { title: announcement.title, body: announcement.body, authorId: announcement.authorId, createdAt: announcement.createdAt.toISOString() },
+  });
   await Promise.all(announcement.attachments.map((a) => deleteStored(a.storageKey)));
   await db.notification.deleteMany({ where: { link: `/comunicados/${announcementId}` } });
   revalidatePath("/comunicados");

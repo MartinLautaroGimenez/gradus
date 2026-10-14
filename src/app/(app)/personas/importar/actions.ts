@@ -2,7 +2,10 @@
 
 import type { Course, Prisma, Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { audit } from "@/lib/audit";
+import { generateInitialPassword } from "@/lib/auth/initial-password";
 import { hashInitialPassword } from "@/lib/auth/password";
+import { LIMITS, hit, minutesLeft } from "@/lib/auth/rate-limit";
 import { MANAGE_ROLES, assignableRoles, canManageUser } from "@/lib/auth/permissions";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import { requireRole } from "@/lib/auth/session";
@@ -42,8 +45,23 @@ export type ImportState = {
     /** Cuántas filas se van a aplicar. */
     applicable: number;
   };
-  done?: { lines: string[] };
+  done?: {
+    lines: string[];
+    /** Contraseñas iniciales de las cuentas creadas: se descargan una sola vez. */
+    credentials: { name: string; dni: string; role: string; password: string }[];
+  };
 };
+
+/** Genera y hashea contraseñas iniciales al azar para cada DNI. */
+async function initialPasswords(dnis: Iterable<string>) {
+  const passwords = new Map<string, { password: string; hash: string }>();
+  for (const dni of dnis) {
+    if (passwords.has(dni)) continue;
+    const password = generateInitialPassword();
+    passwords.set(dni, { password, hash: await hashInitialPassword(password) });
+  }
+  return passwords;
+}
 
 type Actor = Awaited<ReturnType<typeof requireRole>>;
 type CourseRef = { grade: number; division: string };
@@ -89,6 +107,8 @@ export async function importPeople(_prev: ImportState, formData: FormData): Prom
   const kind = formData.get("kind") === "personal" ? "personal" : "alumnos";
   const apply = formData.get("mode") === "apply";
   const createCourses = formData.get("createCourses") === "on";
+  const limitKey = `importar:${actor.id}`;
+  if (!hit(limitKey, LIMITS.imports)) return { error: `Demasiadas importaciones seguidas. Esperá ${minutesLeft(limitKey)} min.` };
   try {
     return kind === "personal"
       ? await importStaff(actor, formData, apply, createCourses)
@@ -195,10 +215,7 @@ async function importStudents(actor: Actor, formData: FormData, apply: boolean, 
   }
 
   // Aplicar: sólo las filas válidas y nuevas. Todo o nada.
-  const hashes = new Map<string, string>();
-  for (const dni of [...toCreate.map((row) => row.student.dni), ...newGuardianDnis]) {
-    hashes.set(dni, await hashInitialPassword(dni));
-  }
+  const passwords = await initialPasswords([...toCreate.map((row) => row.student.dni), ...newGuardianDnis]);
 
   const result = await db.$transaction(
     async (tx) => {
@@ -225,7 +242,7 @@ async function importStudents(actor: Actor, formData: FormData, apply: boolean, 
             lastName: student.lastName,
             email: student.email,
             roles: ["ALUMNO"],
-            passwordHash: hashes.get(student.dni)!,
+            passwordHash: passwords.get(student.dni)!.hash,
             mustChangePassword: true,
             studentProfile: {
               create: {
@@ -249,7 +266,7 @@ async function importStudents(actor: Actor, formData: FormData, apply: boolean, 
                 email: guardian.email,
                 phone: guardian.phone,
                 roles: ["TUTOR"],
-                passwordHash: hashes.get(guardian.dni)!,
+                passwordHash: passwords.get(guardian.dni)!.hash,
                 mustChangePassword: true,
               },
             });
@@ -280,8 +297,18 @@ async function importStudents(actor: Actor, formData: FormData, apply: boolean, 
 
   revalidatePath("/personas");
   revalidatePath("/cursos");
+  const guardianNames = new Map(toCreate.flatMap((r) => r.student.guardians.map((g) => [g.dni, `${g.lastName}, ${g.firstName}`] as const)));
+  await audit({
+    actorId: actor.id,
+    action: "importar.alumnos",
+    summary: `Importó ${toCreate.length} alumnos y ${result.guardiansCreated} familias desde "${file.name}"`,
+  });
   return {
     done: {
+      credentials: [
+        ...toCreate.map((r) => ({ name: `${r.student.lastName}, ${r.student.firstName}`, dni: r.student.dni, role: "Alumno", password: passwords.get(r.student.dni)!.password })),
+        ...[...newGuardianDnis].map((dni) => ({ name: guardianNames.get(dni) ?? dni, dni, role: "Familia", password: passwords.get(dni)!.password })),
+      ],
       lines: [
         `${toCreate.length} alumnos creados y matriculados`,
         `${result.guardiansCreated} cuentas de familia creadas`,
@@ -388,8 +415,7 @@ async function importStaff(actor: Actor, formData: FormData, apply: boolean, cre
     };
   }
 
-  const hashes = new Map<string, string>();
-  for (const { person } of toCreate) hashes.set(person.dni, await hashInitialPassword(person.dni));
+  const passwords = await initialPasswords(toCreate.map((r) => r.person.dni));
 
   await db.$transaction(
     async (tx) => {
@@ -410,7 +436,7 @@ async function importStaff(actor: Actor, formData: FormData, apply: boolean, cre
                 email: person.email,
                 phone: person.phone,
                 roles,
-                passwordHash: hashes.get(person.dni)!,
+                passwordHash: passwords.get(person.dni)!.hash,
                 mustChangePassword: true,
               },
             });
@@ -425,8 +451,20 @@ async function importStaff(actor: Actor, formData: FormData, apply: boolean, cre
   revalidatePath("/personas");
   revalidatePath("/cursos");
   const assigned = [...toCreate, ...toUpdate].reduce((sum, r) => sum + r.person.courses.length, 0);
+  await audit({
+    actorId: actor.id,
+    action: "importar.personal",
+    summary: `Importó ${toCreate.length} personas nuevas y actualizó ${toUpdate.length} desde "${file.name}"`,
+    details: { updated: toUpdate.map((r) => ({ dni: r.person.dni, roles: r.roles })) },
+  });
   return {
     done: {
+      credentials: toCreate.map((r) => ({
+        name: `${r.person.lastName}, ${r.person.firstName}`,
+        dni: r.person.dni,
+        role: r.roles.map((role) => ROLE_LABELS[role]).join(" / "),
+        password: passwords.get(r.person.dni)!.password,
+      })),
       lines: [
         `${toCreate.length} personas creadas`,
         ...(toUpdate.length ? [`${toUpdate.length} personas actualizadas`] : []),

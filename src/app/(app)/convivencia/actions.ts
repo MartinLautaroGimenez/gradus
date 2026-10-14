@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { hasAnyRole } from "@/lib/auth/roles";
+import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { INCIDENT_LABELS, allowedKinds } from "@/lib/discipline";
@@ -51,6 +52,13 @@ export async function createIncident(_prev: FormState, formData: FormData): Prom
     },
   });
 
+  await audit({
+    actorId: user.id,
+    action: "convivencia.registrar",
+    entity: "Incident",
+    entityId: incident.id,
+    summary: `Registró ${INCIDENT_LABELS[data.kind].toLowerCase()} para ${enrollment.student.user.firstName} ${enrollment.student.user.lastName}`,
+  });
   const name = enrollment.student.user.firstName;
   const guardians = enrollment.student.guardians.map((g) => g.guardianId);
   await notify([...guardians, enrollment.student.userId], {
@@ -104,6 +112,14 @@ export async function deleteIncident(incidentId: string) {
   if (!incident) return;
   if (incident.createdById !== user.id && !hasAnyRole(user, ["SUPERADMIN", "DIRECTIVO"])) return;
   await db.incident.delete({ where: { id: incidentId } });
+  await audit({
+    actorId: user.id,
+    action: "convivencia.borrar",
+    entity: "Incident",
+    entityId: incidentId,
+    summary: `Borró un registro de convivencia (${INCIDENT_LABELS[incident.kind].toLowerCase()} del ${incident.date.toISOString().slice(0, 10)})`,
+    details: { enrollmentId: incident.enrollmentId, kind: incident.kind, description: incident.description, measures: incident.measures, createdById: incident.createdById },
+  });
   await db.notification.deleteMany({ where: { link: `/convivencia/${incidentId}` } });
   revalidatePath("/convivencia");
   redirect("/convivencia");

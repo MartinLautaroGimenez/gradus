@@ -84,6 +84,7 @@ también es padre de un alumno) y ve lo que corresponde a cada uno.
 | **Calendario** | Vista mensual y agenda; evaluaciones de la planilla automáticas; feriados, actos, reuniones y salidas por escuela o curso | ✅ 7 |
 | **Autorizaciones** | Salidas educativas y permisos con respuesta digital de la familia, plazo y seguimiento | ✅ 7 |
 | **Reportes** | Tablero de la dirección: promedios por curso, distribución, materias con más desaprobados, ausentismo, alumnos en riesgo (exportable) | ✅ 8 |
+| **Seguridad** | Verificación en dos pasos, contraseñas iniciales al azar y política de contraseñas, sesiones por dispositivo, límites de intentos, registro de auditoría, CSP y encabezados, validación de adjuntos, servidor aislado y backups (ver `docs/SEGURIDAD.md`) | ✅ 9 |
 | Futuro | Horarios, tareas, inscripciones online, cuotas y pagos (hoy los maneja la Universidad), otros niveles | — |
 
 ## Hoja de ruta
@@ -103,6 +104,7 @@ punta: modelo de datos, pantallas, permisos y tests.
 6. ✅ **Mensajería y convivencia.**
 7. ✅ **Calendario y autorizaciones.**
 8. ✅ **Reportes.**
+9. ✅ **Seguridad:** ver `docs/SEGURIDAD.md`.
 
 ## Decisiones técnicas
 
@@ -112,7 +114,7 @@ punta: modelo de datos, pantallas, permisos y tests.
 | Base de datos | PostgreSQL + Prisma | Los datos escolares son muy relacionales; Prisma da migraciones y tipos. |
 | Estilos | Tailwind CSS con componentes propios | Interfaz consistente y liviana, sin dependencias pesadas. |
 | Sesiones | Propias, guardadas en la base | El navegador sólo tiene un token aleatorio; en la base se guarda su hash. Cerrar sesión la invalida de verdad. |
-| Contraseñas | bcrypt | Estándar. El login limita los intentos fallidos. |
+| Contraseñas | bcrypt + verificación en dos pasos opcional (TOTP) | Estándar. El login limita los intentos fallidos por cuenta y por IP. Ver `docs/SEGURIDAD.md`. |
 | Despliegue | Node.js + systemd + proxy con HTTPS, sin Docker | Simple de mantener en el homelab y en el servidor de la ETec. |
 | Idioma | Interfaz y documentación en español; código en inglés | |
 
@@ -282,10 +284,14 @@ a notas y asistencia.
 ## Cuentas y contraseñas
 
 - Todas las personas se identifican por su **DNI**; el email es opcional.
-- Las cuentas que crea la escuela (a mano o por importación) arrancan con el
-  DNI como contraseña y se pide cambiarla en el primer ingreso.
+- Las cuentas que crea la escuela (a mano o por importación) arrancan con una
+  contraseña al azar que se muestra una sola vez (la importación la da en un
+  CSV) y se pide cambiarla en el primer ingreso.
 - Si alguien se olvida la contraseña, el personal la restablece desde su ficha
-  en Personas: vuelve a ser el DNI y se cierran sus sesiones abiertas.
+  en Personas: se genera otra al azar y se cierran sus sesiones abiertas.
+- Contraseñas de al menos 10 caracteres que no contengan el DNI ni el nombre.
+- Verificación en dos pasos opcional para todos y exigible al personal de
+  gestión. Detalles en `docs/SEGURIDAD.md`.
 - Desactivar una cuenta impide el ingreso y cierra sus sesiones. No se borran
   personas, para no perder su historial.
 - Permisos sobre personas: un administrativo no puede modificar directivos ni

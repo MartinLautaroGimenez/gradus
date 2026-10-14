@@ -3,8 +3,11 @@
 import { Prisma, type Role } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { audit } from "@/lib/audit";
 import { z } from "zod";
+import { generateInitialPassword } from "@/lib/auth/initial-password";
 import { hashInitialPassword } from "@/lib/auth/password";
+import { ROLE_LABELS } from "@/lib/auth/roles";
 import { MANAGE_ROLES, assignableRoles, canManageUser } from "@/lib/auth/permissions";
 import { requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -60,6 +63,8 @@ export async function createPerson(_prev: FormState, formData: FormData): Promis
   const extra = studentExtraSchema.safeParse(Object.fromEntries(formData));
   if (!extra.success) return fromZodError(extra.error);
   const isStudent = roles.includes("ALUMNO");
+  const password = generateInitialPassword();
+  const passwordHash = await hashInitialPassword(password);
 
   let userId: string;
   try {
@@ -68,8 +73,8 @@ export async function createPerson(_prev: FormState, formData: FormData): Promis
         data: {
           ...data,
           roles,
-          // Contraseña inicial: el DNI. Se pide cambiarla en el primer ingreso.
-          passwordHash: await hashInitialPassword(data.dni),
+          // Contraseña inicial al azar. Se pide cambiarla en el primer ingreso.
+          passwordHash,
           mustChangePassword: true,
         },
       });
@@ -100,8 +105,16 @@ export async function createPerson(_prev: FormState, formData: FormData): Promis
     throw error;
   }
 
+  const name = `${data.firstName} ${data.lastName}`;
+  await audit({
+    actorId: actor.id,
+    action: "persona.crear",
+    entity: "User",
+    entityId: userId,
+    summary: `Creó la cuenta de ${name} (${roles.map((role) => ROLE_LABELS[role]).join(", ")})`,
+  });
   revalidatePath("/personas");
-  redirect(`/personas/${userId}?creado=1`);
+  return { ok: true, credentials: { name, dni: data.dni, password, href: `/personas/${userId}` } };
 }
 
 async function loadManageable(actor: { id: string; roles: Role[] }, id: string) {
@@ -121,10 +134,13 @@ export async function updatePerson(id: string, _prev: FormState, formData: FormD
   const roles = actor.id === id ? target.roles : requested;
   const allowed = assignableRoles(actor);
   if (!roles.every((role) => allowed.includes(role))) return { error: "No podés otorgar alguno de esos roles" };
+  const rolesChanged = [...roles].sort().join() !== [...target.roles].sort().join();
 
   try {
     await db.$transaction(async (tx) => {
       await tx.user.update({ where: { id }, data: { ...data, roles } });
+      // Si cambian los roles, se cierran sus sesiones para que tomen efecto ya.
+      if (rolesChanged) await tx.session.deleteMany({ where: { userId: id } });
       // Si se le agrega el rol de alumno, se le crea el legajo.
       if (roles.includes("ALUMNO")) {
         await tx.student.upsert({ where: { userId: id }, update: {}, create: { userId: id, fileNumber: data.dni } });
@@ -136,6 +152,19 @@ export async function updatePerson(id: string, _prev: FormState, formData: FormD
     throw error;
   }
 
+  const changes = (Object.keys(data) as (keyof typeof data)[]).filter((key) => (data[key] ?? null) !== (target[key] ?? null));
+  if (rolesChanged || changes.length) {
+    await audit({
+      actorId: actor.id,
+      action: rolesChanged ? "persona.roles" : "persona.editar",
+      entity: "User",
+      entityId: id,
+      summary: rolesChanged
+        ? `Cambió los roles de ${target.firstName} ${target.lastName}: ${target.roles.map((r) => ROLE_LABELS[r]).join(", ")} → ${roles.map((r) => ROLE_LABELS[r]).join(", ")}`
+        : `Editó los datos de ${target.firstName} ${target.lastName} (${changes.join(", ")})`,
+      details: { before: { roles: target.roles, ...Object.fromEntries(changes.map((k) => [k, target[k]])) }, after: { roles, ...Object.fromEntries(changes.map((k) => [k, data[k] ?? null])) } },
+    });
+  }
   revalidatePath(`/personas/${id}`);
   return { ok: true, message: "Datos guardados" };
 }
@@ -200,6 +229,9 @@ export async function addGuardian(studentUserId: string, _prev: FormState, formD
     };
   }
 
+  const password = guardian ? null : generateInitialPassword();
+  const passwordHash = password ? await hashInitialPassword(password) : null;
+
   try {
     await db.$transaction(async (tx) => {
       if (guardian) {
@@ -215,7 +247,7 @@ export async function addGuardian(studentUserId: string, _prev: FormState, formD
             email,
             phone,
             roles: ["TUTOR"],
-            passwordHash: await hashInitialPassword(dni),
+            passwordHash: passwordHash!,
             mustChangePassword: true,
           },
         });
@@ -232,8 +264,18 @@ export async function addGuardian(studentUserId: string, _prev: FormState, formD
     throw error;
   }
 
+  const guardianName = `${guardian!.firstName} ${guardian!.lastName}`;
+  await audit({
+    actorId: actor.id,
+    action: "familia.vincular",
+    entity: "User",
+    entityId: studentUserId,
+    summary: `Vinculó a ${guardianName} como responsable de ${student.user.firstName} ${student.user.lastName}${password ? " (cuenta nueva)" : ""}`,
+  });
   revalidatePath(`/personas/${studentUserId}`);
-  return { ok: true, message: "Adulto responsable vinculado" };
+  return password
+    ? { ok: true, message: "Adulto responsable vinculado", credentials: { name: guardianName, dni, password, href: `/personas/${guardian!.id}` } }
+    : { ok: true, message: "Adulto responsable vinculado" };
 }
 
 export async function removeGuardian(linkId: string) {
@@ -242,30 +284,57 @@ export async function removeGuardian(linkId: string) {
   if (!link) return;
   await loadManageable(actor, link.student.userId);
   await db.studentGuardian.delete({ where: { id: linkId } });
+  await audit({ actorId: actor.id, action: "familia.desvincular", entity: "User", entityId: link.student.userId, summary: `Desvinculó a un responsable (usuario ${link.guardianId})`, details: { guardianId: link.guardianId } });
   revalidatePath(`/personas/${link.student.userId}`);
 }
 
 export async function resetPassword(userId: string): Promise<FormState> {
   const actor = await requireRole(MANAGE_ROLES);
   const target = await loadManageable(actor, userId);
+  if (actor.id === userId) return { error: "Para tu propia cuenta usá Seguridad de la cuenta." };
+  const password = generateInitialPassword();
   await db.$transaction([
     db.user.update({
       where: { id: userId },
-      data: { passwordHash: await hashInitialPassword(target.dni), mustChangePassword: true },
+      data: { passwordHash: await hashInitialPassword(password), mustChangePassword: true },
     }),
     db.session.deleteMany({ where: { userId } }),
   ]);
-  return { ok: true, message: "Listo: la contraseña volvió a ser el DNI. Se le pedirá cambiarla al ingresar." };
+  const name = `${target.firstName} ${target.lastName}`;
+  await audit({ actorId: actor.id, action: "contrasena.restablecer", entity: "User", entityId: userId, summary: `Restableció la contraseña de ${name}` });
+  return { ok: true, credentials: { name, dni: target.dni, password } };
+}
+
+/** Quita la verificación en dos pasos (por ejemplo, si la persona perdió el teléfono). */
+export async function resetTwoFactor(userId: string): Promise<FormState> {
+  const actor = await requireRole(["SUPERADMIN", "DIRECTIVO"]);
+  const target = await loadManageable(actor, userId);
+  if (actor.id === userId) return { error: "Para tu propia cuenta usá Seguridad de la cuenta." };
+  await db.$transaction([
+    db.user.update({ where: { id: userId }, data: { totpSecret: null, totpEnabledAt: null, totpLastStep: null } }),
+    db.recoveryCode.deleteMany({ where: { userId } }),
+    db.session.deleteMany({ where: { userId } }),
+  ]);
+  await audit({ actorId: actor.id, action: "2fa.quitar", entity: "User", entityId: userId, summary: `Quitó la verificación en dos pasos de ${target.firstName} ${target.lastName}` });
+  revalidatePath(`/personas/${userId}`);
+  return { ok: true, message: "Listo. Va a poder ingresar sólo con la contraseña y volver a activarla." };
 }
 
 export async function setUserActive(userId: string, active: boolean) {
   const actor = await requireRole(MANAGE_ROLES);
   if (actor.id === userId) return;
-  await loadManageable(actor, userId);
+  const target = await loadManageable(actor, userId);
   await db.$transaction([
     db.user.update({ where: { id: userId }, data: { active } }),
     // Al desactivar se cierran todas sus sesiones abiertas.
     ...(active ? [] : [db.session.deleteMany({ where: { userId } })]),
   ]);
+  await audit({
+    actorId: actor.id,
+    action: active ? "persona.reactivar" : "persona.desactivar",
+    entity: "User",
+    entityId: userId,
+    summary: `${active ? "Reactivó" : "Desactivó"} la cuenta de ${target.firstName} ${target.lastName}`,
+  });
   revalidatePath(`/personas/${userId}`);
 }

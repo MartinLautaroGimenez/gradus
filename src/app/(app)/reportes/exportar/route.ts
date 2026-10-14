@@ -1,5 +1,5 @@
 import { hasAnyRole } from "@/lib/auth/roles";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getReadyUser } from "@/lib/auth/session";
 import { formatAbsences } from "@/lib/attendance";
 import { formatGrade } from "@/lib/grades";
 import { isAtRisk, loadSchoolReport } from "@/lib/reports";
@@ -9,8 +9,8 @@ const BOM = String.fromCharCode(0xfeff);
 
 /** Alumnos en riesgo en CSV con ";" (Excel en español lo abre directo). */
 export async function GET(request: Request) {
-  const user = await getCurrentUser();
-  if (!user || user.mustChangePassword || !hasAnyRole(user, ["SUPERADMIN", "DIRECTIVO", "PRECEPTOR"])) {
+  const user = await getReadyUser();
+  if (!user || !hasAnyRole(user, ["SUPERADMIN", "DIRECTIVO", "PRECEPTOR"])) {
     return new Response("No autorizado", { status: 401 });
   }
   const curso = new URL(request.url).searchParams.get("curso");
@@ -19,7 +19,11 @@ export async function GET(request: Request) {
   const report = await loadSchoolReport(scope);
   if (!report) return new Response("Sin ciclo activo", { status: 404 });
 
-  const cell = (v: string) => (/[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  // Un texto que empieza con =, +, - o @ Excel lo toma como fórmula: se le antepone '.
+  const cell = (raw: string) => {
+    const v = /^[=+\-@\t\r]/.test(raw) && !/^-?\d/.test(raw) ? `'${raw}` : raw;
+    return /[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+  };
   const rows = report.students
     .filter(isAtRisk)
     .filter((s) => !curso || s.courseId === curso)

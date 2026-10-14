@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { CONFIG_ROLES } from "@/lib/auth/permissions";
 import { requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -18,10 +19,11 @@ const schoolSchema = z.object({
   lateValue: z.coerce.number().min(0, "Entre 0 y 1").max(1, "Entre 0 y 1"),
   earlyLeaveValue: z.coerce.number().min(0, "Entre 0 y 1").max(1, "Entre 0 y 1"),
   justifiedCount: z.literal("on").optional().transform((v) => v === "on"),
+  require2faForStaff: z.literal("on").optional().transform((v) => v === "on"),
 });
 
 export async function updateSchool(_prev: FormState, formData: FormData): Promise<FormState> {
-  await requireRole(CONFIG_ROLES);
+  const user = await requireRole(CONFIG_ROLES);
   const parsed = schoolSchema.safeParse(
     // Se acepta coma decimal ("0,25").
     Object.fromEntries([...formData].map(([k, v]) => [k, typeof v === "string" ? v.replace(",", ".") : v])),
@@ -29,8 +31,31 @@ export async function updateSchool(_prev: FormState, formData: FormData): Promis
   if (!parsed.success) return fromZodError(parsed.error);
 
   const school = await db.school.findFirst();
+  if (parsed.data.require2faForStaff && !user.twoFactorEnabled) {
+    return {
+      error: "Para exigir la verificación en dos pasos, activala primero en tu cuenta (Seguridad de la cuenta).",
+      fieldErrors: { require2faForStaff: ["Activala primero en tu cuenta"] },
+    };
+  }
   if (school) await db.school.update({ where: { id: school.id }, data: parsed.data });
   else await db.school.create({ data: parsed.data });
+
+  const changed = school
+    ? (Object.keys(parsed.data) as (keyof typeof parsed.data)[]).filter((key) => String(school[key]) !== String(parsed.data[key]))
+    : Object.keys(parsed.data);
+  if (changed.length) {
+    await audit({
+      actorId: user.id,
+      action: "config.escuela",
+      entity: "School",
+      entityId: school?.id,
+      summary: `Cambió la configuración de la escuela (${changed.join(", ")})`,
+      details: {
+        before: school ? Object.fromEntries(changed.map((key) => [key, String(school[key as keyof typeof school])])) : null,
+        after: Object.fromEntries(changed.map((key) => [key, String(parsed.data[key as keyof typeof parsed.data])])),
+      },
+    });
+  }
 
   revalidatePath("/", "layout");
   return { ok: true, message: "Datos guardados" };
@@ -42,7 +67,7 @@ const createYearSchema = z.object({
 });
 
 export async function createAcademicYear(_prev: FormState, formData: FormData): Promise<FormState> {
-  await requireRole(CONFIG_ROLES);
+  const user = await requireRole(CONFIG_ROLES);
   const parsed = createYearSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fromZodError(parsed.error);
   const { year, copyFrom } = parsed.data;
@@ -84,6 +109,7 @@ export async function createAcademicYear(_prev: FormState, formData: FormData): 
     return academicYear;
   });
 
+  await audit({ actorId: user.id, action: "config.ciclo_crear", entity: "AcademicYear", entityId: created.id, summary: `Creó el ciclo lectivo ${year}` });
   revalidatePath("/configuracion");
   redirect(`/configuracion/ciclos/${created.id}`);
 }
@@ -94,21 +120,23 @@ const yearDatesSchema = z.object({ startDate: requiredDate, endDate: requiredDat
 );
 
 export async function updateAcademicYear(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  await requireRole(CONFIG_ROLES);
+  const user = await requireRole(CONFIG_ROLES);
   const parsed = yearDatesSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fromZodError(parsed.error);
 
-  await db.academicYear.update({ where: { id }, data: parsed.data });
+  const updated = await db.academicYear.update({ where: { id }, data: parsed.data });
+  await audit({ actorId: user.id, action: "config.ciclo_fechas", entity: "AcademicYear", entityId: id, summary: `Cambió las fechas del ciclo ${updated.year}` });
   revalidatePath(`/configuracion/ciclos/${id}`);
   return { ok: true, message: "Fechas guardadas" };
 }
 
 export async function activateAcademicYear(id: string) {
-  await requireRole(CONFIG_ROLES);
-  await db.$transaction([
+  const user = await requireRole(CONFIG_ROLES);
+  const [, activated] = await db.$transaction([
     db.academicYear.updateMany({ where: { active: true }, data: { active: false } }),
     db.academicYear.update({ where: { id }, data: { active: true } }),
   ]);
+  await audit({ actorId: user.id, action: "config.ciclo_activar", entity: "AcademicYear", entityId: id, summary: `Activó el ciclo lectivo ${activated.year}` });
   revalidatePath("/", "layout");
 }
 
@@ -126,12 +154,23 @@ const periodSchema = z
   });
 
 export async function updatePeriod(id: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  await requireRole(CONFIG_ROLES);
+  const user = await requireRole(CONFIG_ROLES);
   const parsed = periodSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return fromZodError(parsed.error);
 
   const { closed, ...data } = parsed.data;
+  const before = await db.gradingPeriod.findUnique({ where: { id }, select: { closed: true } });
   const period = await db.gradingPeriod.update({ where: { id }, data: { ...data, closed: closed === "on" } });
+  const toggled = before && before.closed !== period.closed;
+  await audit({
+    actorId: user.id,
+    action: toggled ? (period.closed ? "config.periodo_cerrar" : "config.periodo_abrir") : "config.periodo",
+    entity: "GradingPeriod",
+    entityId: id,
+    summary: toggled
+      ? `${period.closed ? "Cerró" : "Reabrió"} el período ${period.name}`
+      : `Editó el período ${period.name}`,
+  });
   revalidatePath(`/configuracion/ciclos/${period.academicYearId}`);
   return { ok: true, message: "Guardado" };
 }

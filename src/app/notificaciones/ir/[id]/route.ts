@@ -18,6 +18,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const notification = await db.notification.findFirst({ where: { id, userId: user.id } });
   if (!notification) return redirectTo("/notificaciones");
   if (!notification.readAt) await db.notification.update({ where: { id }, data: { readAt: new Date() } });
-  const link = notification.link?.startsWith("/") && !notification.link.startsWith("//") ? notification.link : "/notificaciones";
+  // "//" y "/\\" los navegadores los toman como otro dominio.
+  const link = notification.link && /^\/(?![\/\\])/.test(notification.link) ? notification.link : "/notificaciones";
   return redirectTo(link);
 }

@@ -1,14 +1,14 @@
 import ExcelJS from "exceljs";
 import { ATTENDANCE_SHORT, absenceValue, isWeekend } from "@/lib/attendance";
 import { canTakeAttendance, getAttendanceSettings, totalsByEnrollment } from "@/lib/attendance-server";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getReadyUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { courseLabel, fullName } from "@/lib/utils";
 
 /** Planilla mensual de asistencia en Excel. */
 export async function GET(request: Request, { params }: { params: Promise<{ courseId: string }> }) {
-  const user = await getCurrentUser();
-  if (!user || user.mustChangePassword) return new Response("No autorizado", { status: 401 });
+  const user = await getReadyUser();
+  if (!user) return new Response("No autorizado", { status: 401 });
   const { courseId } = await params;
   const mes = new URL(request.url).searchParams.get("mes") ?? "";
   if (!/^\d{4}-\d{2}$/.test(mes)) return new Response("Mes inválido", { status: 400 });

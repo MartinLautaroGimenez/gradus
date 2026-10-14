@@ -2,6 +2,7 @@
 
 import { Field } from "@/components/ui/field";
 import { FormMessage } from "@/components/ui/form-message";
+import { InitialCredentials } from "@/components/ui/initial-credentials";
 import { Input, Label } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -96,21 +97,43 @@ export function AddGuardianForm({ action }: { action: Action }) {
         <SubmitButton pending={pending} variant="secondary">Vincular</SubmitButton>
         <FormMessage state={state} />
       </div>
+      {state.credentials && <InitialCredentials credentials={state.credentials} title="Cuenta de familia creada" />}
     </form>
   );
 }
 
 export function ResetPasswordForm({ action }: { action: () => Promise<FormState> }) {
   const [state, onSubmit, pending] = useFormAction(action, {});
+  if (state.credentials) return <InitialCredentials credentials={state.credentials} title="Contraseña restablecida" />;
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-2">
       <div>
         <SubmitButton pending={pending}
           variant="secondary"
           pendingText="Restableciendo…"
-          confirm="¿Restablecer la contraseña? Volverá a ser el DNI y se cerrarán sus sesiones abiertas."
+          confirm="¿Restablecer la contraseña? Se genera una nueva y se cierran sus sesiones abiertas."
         >
           Restablecer contraseña
+        </SubmitButton>
+      </div>
+      <FormMessage state={state} />
+    </form>
+  );
+}
+
+export function ResetTwoFactorForm({ action }: { action: () => Promise<FormState> }) {
+  const [state, onSubmit, pending] = useFormAction(action, {});
+  if (state.ok) return <FormMessage state={state} />;
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-2">
+      <div>
+        <SubmitButton
+          pending={pending}
+          variant="secondary"
+          pendingText="Quitando…"
+          confirm="¿Quitar la verificación en dos pasos? Hacelo sólo si la persona perdió el teléfono y verificaste su identidad."
+        >
+          Quitar verificación en dos pasos
         </SubmitButton>
       </div>
       <FormMessage state={state} />

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { LIMITS, hit, minutesLeft } from "@/lib/auth/rate-limit";
 import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { canMessage } from "@/lib/messaging/contacts";
@@ -38,6 +39,7 @@ export async function sendMessage(conversationId: string, _prev: FormState, form
     where: { conversationId_userId: { conversationId, userId: user.id } },
   });
   if (!participant) return { error: "No participás de esta conversación" };
+  if (!hit(`mensajes:${user.id}`, LIMITS.messages)) return { error: `Enviaste muchos mensajes seguidos. Esperá ${minutesLeft(`mensajes:${user.id}`)} min.` };
   const parsed = bodySchema.safeParse(formData.get("body"));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -50,6 +52,7 @@ export async function sendMessage(conversationId: string, _prev: FormState, form
 export async function startConversation(recipientId: string, _prev: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();
   if (!(await canMessage(user, recipientId))) return { error: "No podés escribirle a esa persona" };
+  if (!hit(`mensajes:${user.id}`, LIMITS.messages)) return { error: `Enviaste muchos mensajes seguidos. Esperá ${minutesLeft(`mensajes:${user.id}`)} min.` };
   const parsed = bodySchema.safeParse(formData.get("body"));
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 

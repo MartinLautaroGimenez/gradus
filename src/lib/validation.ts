@@ -6,7 +6,11 @@ export type FormState = {
   message?: string;
   error?: string;
   fieldErrors?: Record<string, string[] | undefined>;
+  /** Contraseña inicial recién generada: se muestra una sola vez. */
+  credentials?: InitialCredentials;
 };
+
+export type InitialCredentials = { name: string; dni: string; password: string; href?: string };
 
 export function fromZodError(error: z.ZodError): FormState {
   const fieldErrors: Record<string, string[]> = {};

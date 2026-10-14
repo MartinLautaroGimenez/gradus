@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { SIGNATURE_BYTES, matchesSignature } from "./file-signature";
 
 /** Carpeta donde se guardan los adjuntos. En el servidor conviene una ruta absoluta con backup. */
 const ROOT = path.resolve(process.env.STORAGE_DIR ?? "./storage");
@@ -25,11 +26,13 @@ const ALLOWED: Record<string, string> = {
   ".txt": "text/plain",
 };
 
-export function validateUpload(file: File): string | null {
+export async function validateUpload(file: File): Promise<string | null> {
   const ext = path.extname(file.name).toLowerCase();
   if (!ALLOWED[ext]) return `"${file.name}": formato no permitido (PDF, imágenes, Word, Excel, PowerPoint o texto)`;
   if (file.size > MAX_ATTACHMENT_BYTES) return `"${file.name}" supera los 10 MB`;
   if (file.size === 0) return `"${file.name}" está vacío`;
+  const head = new Uint8Array(await file.slice(0, SIGNATURE_BYTES).arrayBuffer());
+  if (!matchesSignature(ext, head)) return `"${file.name}": el contenido no corresponde a un archivo ${ext.slice(1).toUpperCase()}`;
   return null;
 }
 
@@ -39,8 +42,9 @@ export async function saveUpload(file: File) {
   const now = new Date();
   const key = `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${randomUUID()}${ext}`;
   const target = path.join(ROOT, key);
-  await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, Buffer.from(await file.arrayBuffer()));
+  await mkdir(path.dirname(target), { recursive: true, mode: 0o750 });
+  // Sólo el usuario del servicio puede leerlo (y el grupo, para backups).
+  await writeFile(target, Buffer.from(await file.arrayBuffer()), { mode: 0o640, flag: "wx" });
   return {
     storageKey: key,
     fileName: file.name.slice(0, 200),

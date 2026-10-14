@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { getCurrentUser } from "@/lib/auth/session";
+import { getReadyUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { FINAL_STATUS_LABELS, isPassing, periodAverage } from "@/lib/grades";
 import { canViewGrades } from "@/lib/grading/permissions";
@@ -11,8 +11,8 @@ const HEADER_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: 
 
 /** Descarga la planilla de una materia como Excel: una hoja por período y un resumen anual. */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getCurrentUser();
-  if (!user || user.mustChangePassword) return new Response("No autorizado", { status: 401 });
+  const user = await getReadyUser();
+  if (!user) return new Response("No autorizado", { status: 401 });
   const { id } = await params;
 
   const sheet = await db.courseSubject.findUnique({

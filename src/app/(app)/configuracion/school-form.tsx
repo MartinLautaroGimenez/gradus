@@ -10,7 +10,7 @@ import { useFormAction } from "@/lib/use-form-action";
 import type { FormState } from "@/lib/validation";
 import { updateSchool } from "./actions";
 
-type SchoolData = Pick<School, "name" | "shortName" | "gradeDecimals" | "maxAbsences" | "justifiedCount"> & {
+type SchoolData = Pick<School, "name" | "shortName" | "gradeDecimals" | "maxAbsences" | "justifiedCount" | "require2faForStaff"> & {
   passingGrade: number;
   lateValue: number;
   earlyLeaveValue: number;
@@ -70,6 +70,13 @@ export function SchoolForm({ school }: { school: SchoolData | null }) {
       <label className="flex items-center gap-2 text-sm sm:col-span-2">
         <input type="checkbox" name="justifiedCount" defaultChecked={school?.justifiedCount ?? true} className="size-4" />
         Las inasistencias justificadas suman para el tope
+      </label>
+      <label className="flex items-start gap-2 text-sm sm:col-span-2">
+        <input type="checkbox" name="require2faForStaff" defaultChecked={school?.require2faForStaff ?? false} className="mt-0.5 size-4" />
+        <span>
+          Exigir verificación en dos pasos a dirección, administración y administradores del sistema
+          {errors.require2faForStaff && <span className="block text-danger">{errors.require2faForStaff[0]}</span>}
+        </span>
       </label>
       <div className="flex items-center gap-3 sm:col-span-2">
         <SubmitButton pending={pending}>Guardar</SubmitButton>

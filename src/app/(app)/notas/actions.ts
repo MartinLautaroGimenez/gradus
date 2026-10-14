@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { audit } from "@/lib/audit";
 import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { parseGradeInput } from "@/lib/grades";
@@ -14,7 +15,7 @@ type Fail = { ok: false; error: string };
 /** Verifica que la persona pueda editar la planilla y que el período esté abierto. */
 async function authorizeSheet(courseSubjectId: string, periodId: string) {
   const user = await requireUser();
-  const sheet = await db.courseSubject.findUnique({ where: { id: courseSubjectId }, include: { course: true } });
+  const sheet = await db.courseSubject.findUnique({ where: { id: courseSubjectId }, include: { course: true, subject: true } });
   if (!sheet || !canEditGrades(user, sheet)) return { ok: false, error: "No tenés permiso para cargar notas en esta materia" } as Fail;
   const period = await db.gradingPeriod.findUnique({ where: { id: periodId } });
   if (!period || period.academicYearId !== sheet.course.academicYearId) return { ok: false, error: "Período inválido" } as Fail;
@@ -85,7 +86,36 @@ export async function saveGrades(
   if (Object.keys(cellErrors).length > 0) {
     return { ok: false, error: "Hay celdas con errores; no se guardó nada de este lote", cellErrors };
   }
+
+  // Valores anteriores, para el registro de auditoría (quién cambió qué nota).
+  const previous = await db.grade.findMany({
+    where: { OR: changes.map((c) => ({ assessmentId: c.assessmentId, enrollmentId: c.enrollmentId })) },
+    select: { assessmentId: true, enrollmentId: true, value: true, absent: true },
+  });
+  const before = new Map(
+    previous.map((g) => [cellKey(g.assessmentId, g.enrollmentId), g.absent ? "A" : g.value === null ? "" : String(g.value)]),
+  );
   await db.$transaction(operations);
+  const cells = changes
+    .map((c) => {
+      // Mismo formato que el valor guardado ("7,50" → "7.5", "aus" → "A").
+      const input = parseGradeInput(c.value);
+      const after = input.kind === "value" ? String(input.value) : input.kind === "absent" ? "A" : "";
+      return { ...c, before: before.get(cellKey(c.assessmentId, c.enrollmentId)) ?? "", after };
+    })
+    .filter((c) => c.before !== c.after);
+  if (cells.length > 0) {
+    await audit({
+      actorId: auth.user.id,
+      action: "notas.guardar",
+      entity: "CourseSubject",
+      entityId: courseSubjectId,
+      summary: `Guardó ${cells.length} notas de ${auth.sheet.subject.name} (${auth.period.name})${
+        cells.some((c) => c.before !== "") ? `, ${cells.filter((c) => c.before !== "").length} modificadas` : ""
+      }`,
+      details: { periodId, cells: cells.map(({ assessmentId, enrollmentId, before, after }) => ({ assessmentId, enrollmentId, before, after })) },
+    });
+  }
   revalidatePath(`/notas/${courseSubjectId}`);
   return { ok: true, saved: changes.length };
 }
@@ -153,7 +183,16 @@ export async function deleteAssessment(id: string): Promise<{ ok: true } | Fail>
   if (!existing) return { ok: true };
   const auth = await authorizeSheet(existing.courseSubjectId, existing.periodId);
   if (!auth.ok) return auth;
+  const grades = await db.grade.findMany({ where: { assessmentId: id }, select: { enrollmentId: true, value: true, absent: true } });
   await db.assessment.delete({ where: { id } });
+  await audit({
+    actorId: auth.user.id,
+    action: "notas.borrar_evaluacion",
+    entity: "CourseSubject",
+    entityId: existing.courseSubjectId,
+    summary: `Borró la evaluación "${existing.title}" de ${auth.sheet.subject.name} (${grades.length} notas)`,
+    details: { assessment: { id, title: existing.title, periodId: existing.periodId }, grades: grades.map((g) => ({ enrollmentId: g.enrollmentId, value: g.value === null ? null : String(g.value), absent: g.absent })) },
+  });
   revalidatePath(`/notas/${existing.courseSubjectId}`);
   return { ok: true };
 }

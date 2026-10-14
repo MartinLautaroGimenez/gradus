@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { KeyRound, LogOut } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { ROLE_LABELS } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/session";
@@ -18,12 +18,12 @@ export function UserMenu({ user }: { user: CurrentUser }) {
         <p className="truncate text-[12px] text-muted">{user.roles.map((role) => ROLE_LABELS[role]).join(" · ")}</p>
       </div>
       <Link
-        href="/cuenta/contrasena"
-        title="Cambiar contraseña"
+        href="/cuenta/seguridad"
+        title="Seguridad de la cuenta"
         className="flex size-8 items-center justify-center rounded-full text-muted hover:bg-surface-muted hover:text-foreground"
       >
-        <KeyRound className="size-4" strokeWidth={1.75} aria-hidden />
-        <span className="sr-only">Cambiar contraseña</span>
+        <ShieldCheck className="size-4" strokeWidth={1.75} aria-hidden />
+        <span className="sr-only">Seguridad de la cuenta</span>
       </Link>
       <form action={logout}>
         <button

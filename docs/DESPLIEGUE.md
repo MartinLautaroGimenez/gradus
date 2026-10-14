@@ -34,6 +34,9 @@ Opciones (se pasan como variables antes del comando):
 | `DOMINIO=gradus.ejemplo.com` | Instala Caddy y sirve Gradus por HTTPS con certificado automático (el dominio tiene que apuntar al servidor y los puertos 80/443 tienen que llegarle) |
 | `RAMA=nombre-de-rama` | Instalar otra rama (por defecto, la que tenga tu copia) |
 | `DEMO=1` | Cargar los datos de prueba (sólo si la base está vacía) |
+| `FIREWALL=1` | Activa el firewall (ufw): sólo quedan abiertos SSH y la web |
+| `ACTUALIZACIONES=1` | Actualizaciones de seguridad automáticas del sistema |
+| `BACKUP=0` | No programar la copia de seguridad diaria (por defecto se programa) |
 
 Para **actualizar**: `git pull` en tu copia y `sudo bash scripts/instalar.sh`
 otra vez. Trae el código nuevo, aplica migraciones, recompila y reinicia. No
@@ -65,6 +68,7 @@ npm run crear-admin       # primer administrador
 | `STORAGE_DIR` | Carpeta de adjuntos (por defecto `./storage`). Usar una ruta absoluta e incluirla en el backup |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Notificaciones push. Generar una vez con `npm run push:keys` y no cambiarlas (si cambian, cada persona tiene que volver a activar las notificaciones) |
 | `SMTP_URL`, `MAIL_FROM` | Envío de emails (opcional). Ej.: `smtps://usuario:clave@smtp.gmail.com:465` |
+| `SECRET_KEY` | Obligatoria en producción. Cifra los secretos de la verificación en dos pasos. Generar con `openssl rand -base64 48`, no cambiarla ni perderla (el instalador la genera) |
 | `COOKIE_SECURE=false` | Sólo para probar por HTTP en la red local |
 
 Las notificaciones push necesitan HTTPS. En iPhone sólo funcionan si la persona
@@ -87,10 +91,18 @@ EnvironmentFile=/opt/gradus/.env
 Environment=NODE_ENV=production PORT=3000
 ExecStart=/usr/bin/npm start
 Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/gradus /opt/gradus/.next
+ProtectHome=true
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+El instalador agrega más aislamiento en `gradus.service.d/endurecido.conf`
+(ver `docs/SEGURIDAD.md`).
 
 ```bash
 sudo systemctl enable --now gradus
@@ -122,7 +134,22 @@ sudo systemctl restart gradus
 
 ## Backups
 
-Programar un `pg_dump` diario y guardar copias fuera del servidor:
+El instalador programa `scripts/backup.sh` todos los días a las 3:30
+(`gradus-backup.timer`): base de datos, adjuntos y `.env` en
+`/var/backups/gradus`, con 14 días de historia y permisos sólo para root.
+Para correrlo a mano: `sudo bash /opt/gradus/scripts/backup.sh`.
+
+**Copiá esa carpeta fuera del servidor** (otro equipo, disco o nube): un backup
+en el mismo disco no sirve si el disco se rompe.
+
+Restaurar:
+
+```bash
+sudo -u postgres pg_restore --clean --if-exists -d gradus /var/backups/gradus/gradus-db-FECHA.dump
+sudo tar -C /var/lib/gradus -xzf /var/backups/gradus/gradus-archivos-FECHA.tar.gz
+```
+
+Sin instalador, el equivalente es:
 
 ```bash
 pg_dump -Fc gradus > /backups/gradus-$(date +%F).dump

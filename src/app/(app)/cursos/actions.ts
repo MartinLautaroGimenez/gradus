@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { MANAGE_ROLES } from "@/lib/auth/permissions";
+import { audit } from "@/lib/audit";
 import { requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { type FormState, fromZodError } from "@/lib/validation";
@@ -157,7 +158,7 @@ export async function enrollStudent(courseId: string, formData: FormData) {
 const STATUSES: EnrollmentStatus[] = ["ACTIVA", "PASE", "BAJA", "EGRESADO"];
 
 export async function setEnrollmentStatus(enrollmentId: string, formData: FormData) {
-  await requireRole(MANAGE_ROLES);
+  const user = await requireRole(MANAGE_ROLES);
   const status = String(formData.get("status")) as EnrollmentStatus;
   if (!STATUSES.includes(status)) return;
   const enrollment = await db.enrollment.findUnique({ where: { id: enrollmentId }, include: { course: true } });
@@ -175,11 +176,21 @@ export async function setEnrollmentStatus(enrollmentId: string, formData: FormDa
     if (other) redirect(`/cursos/${enrollment.courseId}?error=ya-matriculado`);
   }
   await db.enrollment.update({ where: { id: enrollmentId }, data: { status } });
+  if (enrollment.status !== status) {
+    await audit({
+      actorId: user.id,
+      action: "matricula.estado",
+      entity: "Enrollment",
+      entityId: enrollmentId,
+      summary: `Cambió el estado de una matrícula: ${enrollment.status} → ${status}`,
+      details: { studentId: enrollment.studentId, courseId: enrollment.courseId },
+    });
+  }
   revalidatePath(`/cursos/${enrollment.courseId}`);
 }
 
 export async function removeEnrollment(enrollmentId: string) {
-  await requireRole(MANAGE_ROLES);
+  const user = await requireRole(MANAGE_ROLES);
   const enrollment = await db.enrollment.findUnique({
     where: { id: enrollmentId },
     include: { _count: { select: { grades: true } } },
@@ -188,6 +199,14 @@ export async function removeEnrollment(enrollmentId: string) {
   // Con notas cargadas no se borra: se le cambia el estado a Pase o Baja.
   if (enrollment._count.grades > 0) redirect(`/cursos/${enrollment.courseId}?error=alumno-con-notas`);
   await db.enrollment.delete({ where: { id: enrollmentId } });
+  await audit({
+    actorId: user.id,
+    action: "matricula.quitar",
+    entity: "Enrollment",
+    entityId: enrollmentId,
+    summary: "Quitó a un alumno de un curso",
+    details: { studentId: enrollment.studentId, courseId: enrollment.courseId },
+  });
   revalidatePath(`/cursos/${enrollment.courseId}`);
 }
 

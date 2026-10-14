@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
@@ -24,6 +25,17 @@ export default async function ConfiguracionPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Configuración" description="Datos de la escuela y ciclos lectivos" />
+
+      <Link
+        href="/configuracion/auditoria"
+        className="flex items-center justify-between rounded-2xl bg-surface px-5 py-4 shadow-card hover:bg-surface-muted/60"
+      >
+        <span>
+          <span className="block font-medium">Registro de auditoría</span>
+          <span className="block text-[13px] text-muted">Ingresos, cambios de notas, asistencia, permisos y configuración</span>
+        </span>
+        <ChevronRight className="size-5 text-muted" aria-hidden />
+      </Link>
 
       <Card className="flex flex-col gap-4">
         <div>

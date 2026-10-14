@@ -11,6 +11,7 @@ import { createInterface } from "node:readline";
 import { Writable } from "node:stream";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { PASSWORD_MIN_LENGTH, passwordProblem } from "../src/lib/auth/password-policy";
 
 const db = new PrismaClient();
 
@@ -47,8 +48,9 @@ async function main() {
   const email = (await ask("Email (opcional): ")).toLowerCase() || null;
   if (!firstName || !lastName) throw new Error("Nombre y apellido son obligatorios");
 
-  const password = await ask("Contraseña (mínimo 10 caracteres): ", { hidden: true });
-  if (password.length < 10) throw new Error("La contraseña tiene que tener al menos 10 caracteres");
+  const password = await ask(`Contraseña (mínimo ${PASSWORD_MIN_LENGTH} caracteres): `, { hidden: true });
+  const problem = passwordProblem(password, { dni, firstName, lastName, email });
+  if (problem) throw new Error(problem);
   const again = await ask("Repetí la contraseña: ", { hidden: true });
   if (password !== again) throw new Error("Las contraseñas no coinciden");
 
@@ -64,13 +66,14 @@ async function main() {
         passwordHash,
         active: true,
         mustChangePassword: false,
+        passwordChangedAt: new Date(),
         roles: [...new Set([...existing.roles, "SUPERADMIN" as const])],
       },
     });
     console.log(`\nListo: ${firstName} ${lastName} ahora es administrador (se actualizó su contraseña).`);
   } else {
     await db.user.create({
-      data: { dni, firstName, lastName, email, passwordHash, roles: ["SUPERADMIN"], mustChangePassword: false },
+      data: { dni, firstName, lastName, email, passwordHash, roles: ["SUPERADMIN"], mustChangePassword: false, passwordChangedAt: new Date() },
     });
     console.log(`\nListo: se creó el administrador ${firstName} ${lastName}. Ingresá con el DNI ${dni}.`);
   }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Role } from "@prisma/client";
 import { Field } from "@/components/ui/field";
 import { FormMessage } from "@/components/ui/form-message";
+import { InitialCredentials } from "@/components/ui/initial-credentials";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -46,6 +47,18 @@ export function PersonForm({
     setRoles((current) => (checked ? [...current, role] : current.filter((r) => r !== role)));
   }
 
+  if (state.credentials) {
+    return (
+      <div className="flex flex-col gap-4">
+        <InitialCredentials credentials={state.credentials} title="Cuenta creada" />
+        {/* Recarga completa para empezar con el formulario vacío. */}
+        <button type="button" onClick={() => window.location.assign("/personas/nueva")} className="self-start text-[15px] text-primary">
+          Crear otra persona
+        </button>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5">
       <div className="grid gap-4 sm:grid-cols-2">
@@ -59,7 +72,7 @@ export function PersonForm({
           label="DNI"
           htmlFor="dni"
           error={errors.dni}
-          hint={isNew ? "También es la contraseña inicial" : undefined}
+          hint={isNew ? "Es el usuario para ingresar" : undefined}
         >
           <Input id="dni" name="dni" defaultValue={person?.dni} required inputMode="numeric" autoComplete="off" />
         </Field>

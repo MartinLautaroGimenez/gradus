@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { ALERT_LABELS, attendanceAlert, formatAbsences } from "@/lib/attendance";
 import { canTakeAttendance, getAttendanceSettings, totalsByEnrollment } from "@/lib/attendance-server";
+import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notifications/notify";
 import { requireUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -79,6 +80,25 @@ export async function saveAttendance(
       });
     }),
   );
+  // Auditoría: sólo las correcciones de una lista ya tomada (la primera carga no).
+  const corrected = parsed.data.flatMap((row) => {
+    const old = previous.find((p) => p.enrollmentId === row.enrollmentId);
+    if (!old) return [];
+    const justified = row.status === "PRESENTE" ? false : row.justified;
+    return old.status !== row.status || old.justified !== justified
+      ? [{ enrollmentId: row.enrollmentId, before: { status: old.status, justified: old.justified }, after: { status: row.status, justified } }]
+      : [];
+  });
+  await audit({
+    actorId: auth.user.id,
+    action: corrected.length ? "asistencia.corregir" : "asistencia.tomar",
+    entity: "Course",
+    entityId: courseId,
+    summary: corrected.length
+      ? `Corrigió la asistencia del ${isoDate} (${corrected.length} alumnos)`
+      : `Tomó lista del ${isoDate} (${parsed.data.length} alumnos)`,
+    details: corrected.length ? { date: isoDate, changes: corrected } : { date: isoDate },
+  });
   await notifyFamilies(parsed.data, previous, totalsBefore, settings, isoDate);
   revalidatePath("/asistencia", "layout");
   return { ok: true };
@@ -138,7 +158,8 @@ async function notifyFamilies(
 export async function deleteAttendanceDay(courseId: string, isoDate: string): Promise<Result> {
   const auth = await authorize(courseId, isoDate);
   if (!auth.ok) return auth;
-  await db.attendanceRecord.deleteMany({ where: { date: auth.date, enrollment: { courseId } } });
+  const { count } = await db.attendanceRecord.deleteMany({ where: { date: auth.date, enrollment: { courseId } } });
+  await audit({ actorId: auth.user.id, action: "asistencia.borrar_dia", entity: "Course", entityId: courseId, summary: `Borró la lista del ${isoDate} (${count} registros)` });
   revalidatePath("/asistencia", "layout");
   return { ok: true };
 }

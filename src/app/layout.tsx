@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   title: { default: "Gradus", template: "%s · Gradus" },
   description: "Notas, asistencia, comunicados y comunicación entre la escuela y las familias.",
   applicationName: "Gradus",
+  // Datos de menores: que ningún buscador indexe nada.
+  robots: { index: false, follow: false },
   appleWebApp: { capable: true, title: "Gradus", statusBarStyle: "default" },
 };
 

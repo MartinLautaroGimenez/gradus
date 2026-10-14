@@ -15,6 +15,9 @@
 #   RAMA=...           rama a instalar (por defecto, la que tenga la copia)
 #   DEMO=1             carga los datos de prueba (sólo si la base está vacía)
 #   PUERTO=3000        puerto interno de la aplicación
+#   FIREWALL=1         activa el firewall (ufw): sólo SSH y la web quedan abiertos
+#   ACTUALIZACIONES=1  instala las actualizaciones de seguridad automáticas del sistema
+#   BACKUP=0           no instala la copia de seguridad diaria (por defecto sí)
 
 set -euo pipefail
 
@@ -36,6 +39,9 @@ RAMA="${RAMA:-main}"
 DOMINIO="${DOMINIO:-}"
 PUERTO="${PUERTO:-3000}"
 DEMO="${DEMO:-0}"
+FIREWALL="${FIREWALL:-0}"
+ACTUALIZACIONES="${ACTUALIZACIONES:-0}"
+BACKUP="${BACKUP:-1}"
 DIR=/opt/gradus
 DATOS=/var/lib/gradus
 USUARIO=gradus
@@ -117,12 +123,17 @@ if [[ ! -f "$ENV_FILE" ]]; then
   VAPID="$(como_gradus "npx --no-install web-push generate-vapid-keys --json 2>/dev/null")"
   VAPID_PUBLIC="$(node -p "JSON.parse(process.argv[1]).publicKey" "$VAPID")"
   VAPID_PRIVATE="$(node -p "JSON.parse(process.argv[1]).privateKey" "$VAPID")"
+  SECRET_KEY="$(openssl rand -base64 48 | tr -d '\n')"
   umask 077
   cat > "$ENV_FILE" <<EOF
 # Generado por scripts/instalar.sh el $(date +%F). No compartir: tiene contraseñas.
 DATABASE_URL="postgresql://gradus:${DB_PASS}@localhost:5432/gradus?schema=public"
 APP_URL="${APP_URL}"
 STORAGE_DIR="${DATOS}/storage"
+
+# Clave para cifrar datos sensibles en la base (secretos de la verificación en dos pasos).
+# No cambiarla ni perderla: sin ella nadie puede usar la verificación en dos pasos.
+SECRET_KEY="${SECRET_KEY}"
 
 # Notificaciones push. No cambiar estas claves: si cambian, todos tienen que volver a activarlas.
 VAPID_PUBLIC_KEY="${VAPID_PUBLIC}"
@@ -150,6 +161,13 @@ elif [[ -n "$DOMINIO" ]] && ! grep -q "^APP_URL=\"https://$DOMINIO\"" "$ENV_FILE
   paso "Pasando la configuración a https://$DOMINIO"
   sed -i "s|^APP_URL=.*|APP_URL=\"https://$DOMINIO\"|; /^COOKIE_SECURE=/d; /^# Sin HTTPS/d" "$ENV_FILE"
 fi
+
+# Instalaciones anteriores a la verificación en dos pasos no tenían clave secreta.
+if ! grep -q '^SECRET_KEY=' "$ENV_FILE"; then
+  paso "Agregando la clave secreta a la configuración"
+  printf '\n# Clave para cifrar datos sensibles en la base. No cambiarla ni perderla.\nSECRET_KEY="%s"\n' "$(openssl rand -base64 48 | tr -d '\n')" >> "$ENV_FILE"
+fi
+chmod 600 "$ENV_FILE"
 
 # ── Migraciones y compilación ────────────────────────────────
 paso "Actualizando la base de datos"
@@ -185,6 +203,7 @@ Environment=NODE_ENV=production
 ExecStart=${DIR}/node_modules/.bin/next start -H ${HOST} -p ${PUERTO}
 Restart=on-failure
 RestartSec=5
+UMask=0027
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
@@ -194,10 +213,44 @@ ProtectHome=true
 WantedBy=multi-user.target
 EOF
 
+# Aislamiento extra (en un archivo aparte porque algunos contenedores LXC no
+# soportan todas las opciones: si el servicio no arranca con ellas, se quitan).
+# No se usa MemoryDenyWriteExecute: Node lo necesita para compilar JavaScript.
+mkdir -p /etc/systemd/system/gradus.service.d
+cat > /etc/systemd/system/gradus.service.d/endurecido.conf <<EOF
+[Service]
+ProtectSystem=strict
+ReadWritePaths=${DATOS} ${DIR}/.next
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+ProtectProc=invisible
+RestrictSUIDSGID=true
+RestrictRealtime=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+CapabilityBoundingSet=
+AmbientCapabilities=
+EOF
+
 if [[ -d /run/systemd/system ]]; then
   systemctl daemon-reload
   systemctl enable gradus >/dev/null 2>&1
   systemctl restart gradus
+  sleep 3
+  if ! systemctl is-active --quiet gradus; then
+    aviso "El servicio no arrancó con el aislamiento extra (pasa en algunos contenedores). Se usa el básico."
+    rm -f /etc/systemd/system/gradus.service.d/endurecido.conf
+    systemctl daemon-reload
+    systemctl restart gradus
+  fi
 else
   aviso "Este sistema no usa systemd: iniciá Gradus a mano con"
   echo "  cd $DIR && sudo -u $USUARIO env NODE_ENV=production node_modules/.bin/next start -H $HOST -p $PUERTO"
@@ -214,11 +267,66 @@ if [[ -n "$DOMINIO" ]]; then
 
 $DOMINIO {
 	encode gzip
+	request_body {
+		max_size 60MB
+	}
+	header -Server
 	reverse_proxy 127.0.0.1:${PUERTO}
 }
 EOF
   fi
   systemctl reload caddy || systemctl restart caddy
+fi
+
+# ── Copia de seguridad diaria ────────────────────────────────
+if [[ "$BACKUP" == "1" ]]; then
+  paso "Programando la copia de seguridad diaria (/var/backups/gradus, 14 días)"
+  cat > /etc/systemd/system/gradus-backup.service <<EOF
+[Unit]
+Description=Copia de seguridad de Gradus
+After=postgresql.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash ${DIR}/scripts/backup.sh
+EOF
+  cat > /etc/systemd/system/gradus-backup.timer <<'EOF'
+[Unit]
+Description=Copia de seguridad diaria de Gradus
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+  systemctl daemon-reload
+  systemctl enable --now gradus-backup.timer >/dev/null 2>&1
+fi
+
+# ── Firewall (opcional) ──────────────────────────────────────
+if [[ "$FIREWALL" == "1" ]]; then
+  paso "Configurando el firewall (ufw)"
+  apt-get install -y -qq ufw >/dev/null
+  ufw allow OpenSSH >/dev/null   # primero SSH, para no quedarse afuera
+  if [[ -n "$DOMINIO" ]]; then
+    ufw allow 80/tcp >/dev/null
+    ufw allow 443/tcp >/dev/null
+  else
+    ufw allow "${PUERTO}/tcp" >/dev/null
+  fi
+  ufw default deny incoming >/dev/null
+  ufw default allow outgoing >/dev/null
+  ufw --force enable >/dev/null
+fi
+
+# ── Actualizaciones de seguridad automáticas (opcional) ──────
+if [[ "$ACTUALIZACIONES" == "1" ]]; then
+  paso "Activando las actualizaciones de seguridad automáticas"
+  apt-get install -y -qq unattended-upgrades >/dev/null
+  printf 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\n' > /etc/apt/apt.conf.d/20auto-upgrades
 fi
 
 # ── Verificación ─────────────────────────────────────────────
@@ -243,7 +351,8 @@ fi
 printf '\n\033[1;32mGradus está funcionando en %s\033[0m\n' "$URL"
 echo "  · Registros:   journalctl -u gradus -f"
 echo "  · Actualizar:  git pull en tu copia del repositorio y volver a correr este script"
-echo "  · Backup:      ver docs/DESPLIEGUE.md (base de datos y $DATOS/storage)"
+echo "  · Backup:      diario en /var/backups/gradus (copiá esa carpeta fuera del servidor)"
+echo "  · Seguridad:   ver docs/SEGURIDAD.md"
 if [[ -z "$DOMINIO" ]]; then
   aviso "Sin HTTPS las notificaciones push no funcionan. Para activarlas, volvé a correr el script con DOMINIO=tu.dominio"
 fi

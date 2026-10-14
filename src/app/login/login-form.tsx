@@ -1,22 +1,21 @@
 "use client";
 
-import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useFormAction } from "@/lib/use-form-action";
 import { login, type LoginState } from "./actions";
 
 export function LoginForm() {
-  const [state, formAction, pending] = useActionState<LoginState, FormData>(login, {});
+  const [state, onSubmit, pending] = useFormAction<LoginState>(login, {});
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
+    <form onSubmit={onSubmit} className="flex flex-col gap-3">
       <Input
         id="identifier"
         name="identifier"
         autoComplete="username"
         placeholder="DNI o email"
         aria-label="DNI o email"
-        defaultValue={state.identifier}
         required
         autoFocus
         className="h-12 text-[17px]"

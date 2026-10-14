@@ -4,7 +4,7 @@ import { useRef } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardDescription, CardTitle } from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Table, Td, Th } from "@/components/ui/table";
 import { useFormAction } from "@/lib/use-form-action";
 import { type ImportState, importPeople } from "./actions";
@@ -15,6 +15,21 @@ const STATUS_BADGE = {
   existente: { tone: "neutral", label: "Se omite" },
   error: { tone: "danger", label: "Error" },
 } as const;
+
+/** Evita que Excel interprete un texto como fórmula (=, +, -, @). */
+function csvCell(value: string) {
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
+function downloadCredentials(rows: { name: string; dni: string; role: string; password: string }[]) {
+  const lines = [["Nombre", "Rol", "Usuario (DNI)", "Contraseña inicial"], ...rows.map((r) => [r.name, r.role, r.dni, r.password])];
+  const csv = "\uFEFF" + lines.map((line) => line.map(csvCell).join(";")).join("\r\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const link = Object.assign(document.createElement("a"), { href: url, download: "gradus-contrasenas-iniciales.csv" });
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 export function ImportFlow({ kind }: { kind: "alumnos" | "personal" }) {
   const [state, onSubmit, pending] = useFormAction<ImportState>(importPeople, {});
@@ -34,9 +49,18 @@ export function ImportFlow({ kind }: { kind: "alumnos" | "personal" }) {
             <li key={line}>{line}</li>
           ))}
         </ul>
-        <CardDescription>
-          Las cuentas nuevas ingresan con su DNI como usuario y contraseña; se les pide cambiarla en el primer ingreso.
-        </CardDescription>
+        {state.done.credentials.length > 0 && (
+          <div className="flex flex-col items-start gap-2 rounded-2xl bg-warning-soft p-4">
+            <p className="text-[15px] font-semibold">Descargá las contraseñas iniciales ahora</p>
+            <p className="text-sm text-muted">
+              Cada cuenta nueva tiene una contraseña al azar que se muestra sólo esta vez. Entregala a cada persona y
+              después borrá el archivo; al ingresar se le pide cambiarla.
+            </p>
+            <Button type="button" onClick={() => downloadCredentials(state.done!.credentials)}>
+              Descargar contraseñas ({state.done.credentials.length})
+            </Button>
+          </div>
+        )}
         <Link href="/personas" className="text-sm font-medium text-primary hover:underline">
           Ver personas
         </Link>
